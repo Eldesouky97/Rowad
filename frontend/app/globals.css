@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #ffffff;
+  color: #1e1b4b;
+}
+
+/* ============ Scroll reveal ============ */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ============ Route strip connector (signature element) ============ */
+.route-inner {
+  position: relative;
+}
+.route-inner::before {
+  content: '';
+  position: absolute;
+  top: 19px;
+  right: 0;
+  left: 0;
+  height: 0;
+  border-top: 2px dashed rgba(139, 92, 246, 0.4);
+}
+@media (max-width: 880px) {
+  .route-inner::before {
+    display: none;
+  }
+  .route-node::before {
+    content: '';
+    position: absolute;
+    top: 38px;
+    bottom: -1.6rem;
+    right: 19px;
+    width: 0;
+    border-right: 2px dashed rgba(139, 92, 246, 0.4);
+  }
+  .route-node:last-child::before {
+    display: none;
+  }
+}
+
+.route-node .rn-note {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.25s ease, max-height 0.25s ease;
+}
+.route-node:hover .rn-note,
+.route-node:focus-within .rn-note {
+  opacity: 0.85;
+  max-height: 80px;
+}
+@media (max-width: 880px) {
+  .route-node .rn-note {
+    opacity: 0.85;
+    max-height: none;
+  }
+}
+
+/* ============ Focus visibility ============ */
+:focus-visible {
+  outline: 3px solid #7c3aed;
+  outline-offset: 3px;
+  border-radius: 4px;
+}

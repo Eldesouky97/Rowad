@@ -1,0 +1,14 @@
+{
+  "hosting": {
+    "public": "public_hosting",
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "rowwad-api",
+          "region": "us-central1"
+        }
+      }
+    ]
+  }
+}
