@@ -1099,8 +1099,14 @@ export const adminGetContactMessages = async (): Promise<(ContactMessageRecord &
 };
 
 /* ============ Admin: Users (super_admin only) ============ */
-async function adjustSuperAdminCount(delta: number): Promise<void> {
-  await runTransaction(ref(db, 'admin_meta/super_admin_count'), (current) => Math.max(0, (current ?? 0) + delta));
+// بيعدّ عدد السوبر أدمن الفعلي مباشرة من admins/ وقت الطلب، بدل الاعتماد على
+// عدّاد منفصل (admin_meta/super_admin_count) كان بينحرف عن الواقع لو أول
+// سوبر أدمن (الحساب الأساسي المزروع يدويًا) ما زادش العدّاد وقت إنشائه —
+// فكان بيمنع حذف/تخفيض أي سوبر أدمن تاني بالغلط ظانًا إنه "الأخير المتبقي"
+// حتى لو فيه أكتر من واحد فعليًا. العدّ المباشر مايعرفش ينحرف عن الحقيقة.
+async function countSuperAdmins(): Promise<number> {
+  const snap = await get(ref(db, 'admins'));
+  return objectToArray<AdminUser>(snap.val()).filter((a) => a.role === 'super_admin').length;
 }
 
 export const adminGetUsers = async (): Promise<AdminUser[]> => {
@@ -1118,7 +1124,6 @@ export const adminCreateUser = async (payload: AdminUserPayload): Promise<AdminU
     const uid = cred.user.uid;
     const adminData = { name: payload.name, email: payload.email, role: payload.role };
     await set(ref(db, `admins/${uid}`), adminData);
-    if (payload.role === 'super_admin') await adjustSuperAdminCount(1);
     await sendEmailVerification(cred.user, authActionCodeSettings()).catch(() => {
       // فشل إرسال إيميل التفعيل مش لازم يوقف إنشاء الحساب نفسه
     });
@@ -1140,8 +1145,7 @@ export const adminUpdateUser = async (uid: string, payload: Partial<AdminUserPay
     if (current.email === PROTECTED_SUPER_ADMIN_EMAIL) {
       throw new ApiException('لا يمكن تغيير دور السوبر أدمن الرئيسي', 422);
     }
-    const countSnap = await get(ref(db, 'admin_meta/super_admin_count'));
-    if ((countSnap.val() ?? 1) <= 1) {
+    if ((await countSuperAdmins()) <= 1) {
       throw new ApiException('لا يمكن تغيير دور آخر Super Admin متبقٍّ', 422);
     }
   }
@@ -1152,10 +1156,6 @@ export const adminUpdateUser = async (uid: string, payload: Partial<AdminUserPay
 
   try {
     await update(ref(db, `admins/${uid}`), updates);
-    if (payload.role && payload.role !== current.role) {
-      if (current.role === 'super_admin') await adjustSuperAdminCount(-1);
-      if (payload.role === 'super_admin') await adjustSuperAdminCount(1);
-    }
   } catch (err) {
     throw translateFirebaseError(err);
   }
@@ -1171,15 +1171,11 @@ export const adminDeleteUser = async (uid: string): Promise<void> => {
   if (target.email === PROTECTED_SUPER_ADMIN_EMAIL) {
     throw new ApiException('لا يمكن حذف السوبر أدمن الرئيسي', 422);
   }
-  if (target.role === 'super_admin') {
-    const countSnap = await get(ref(db, 'admin_meta/super_admin_count'));
-    if ((countSnap.val() ?? 1) <= 1) {
-      throw new ApiException('لا يمكن حذف آخر Super Admin متبقٍّ', 422);
-    }
+  if (target.role === 'super_admin' && (await countSuperAdmins()) <= 1) {
+    throw new ApiException('لا يمكن حذف آخر Super Admin متبقٍّ', 422);
   }
   try {
     await remove(ref(db, `admins/${uid}`));
-    if (target.role === 'super_admin') await adjustSuperAdminCount(-1);
   } catch (err) {
     throw translateFirebaseError(err);
   }
@@ -1244,7 +1240,6 @@ export const adminPromoteSiteUser = async (uid: string, payload: { name: string;
   }
   try {
     await set(ref(db, `admins/${uid}`), payload);
-    if (payload.role === 'super_admin') await adjustSuperAdminCount(1);
   } catch (err) {
     throw translateFirebaseError(err);
   }

@@ -93,8 +93,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (targetAdmin?.role === 'super_admin') {
-    const countSnap = await db.ref('admin_meta/super_admin_count').get();
-    if ((countSnap.val() ?? 1) <= 1) {
+    // العدّ المباشر من admins/ بدل الاعتماد على عدّاد منفصل (admin_meta/super_admin_count)
+    // ممكن ينحرف عن الواقع (مثلاً لو أول سوبر أدمن اتزرع يدويًا من غير ما يزوّد
+    // العدّاد) ويمنع حذف سوبر أدمن تاني موجود فعلًا بالغلط.
+    const allAdminsSnap = await db.ref('admins').get();
+    const allAdmins = (allAdminsSnap.val() || {}) as Record<string, { role?: string }>;
+    const superAdminCount = Object.values(allAdmins).filter((a) => a.role === 'super_admin').length;
+    if (superAdminCount <= 1) {
       return NextResponse.json({ message: 'لا يمكن حذف آخر Super Admin متبقٍّ' }, { status: 422 });
     }
   }
@@ -116,9 +121,6 @@ export async function POST(req: NextRequest) {
 
   try {
     await db.ref().update(dbUpdates);
-    if (targetAdmin?.role === 'super_admin') {
-      await db.ref('admin_meta/super_admin_count').transaction((current) => Math.max(0, (current ?? 1) - 1));
-    }
   } catch {
     return NextResponse.json({ message: 'تعذّر حذف بيانات المستخدم من قاعدة البيانات' }, { status: 500 });
   }
