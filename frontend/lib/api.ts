@@ -916,10 +916,33 @@ export const adminPromoteSiteUser = async (uid: string, payload: { name: string;
 
 // بيشيل بروفايل الزائر من /site_users بس — حساب Firebase Auth بتاعه بيفضل
 // شغال (مفيش طريقة نحذفه فعليًا من غير Admin SDK)، فهيظهر تاني لو سجّل دخول.
+// استخدم adminDeleteUserCompletely لحذف حقيقي شامل بما فيه حساب المصادقة.
 export const adminDeleteSiteUser = async (uid: string): Promise<void> => {
   try {
     await remove(ref(db, `site_users/${uid}`));
   } catch (err) {
     throw translateFirebaseError(err);
+  }
+};
+
+/**
+ * حذف نهائي وكامل لحساب مستخدم (أدمن أو زائر عادي): حساب Firebase
+ * Authentication نفسه + /site_users + /admins لو موجود + كل حجوزاته + صورة
+ * بروفايله من R2. سوبر أدمن فقط. ينفّذ عبر app/api/admin/delete-user لأن
+ * حذف حساب مصادقة مستخدم تاني مش ممكن من الـ Client SDK إطلاقًا — محتاج
+ * Admin SDK بمفتاح خدمة سيرفر-فقط (راجع lib/firebaseAdmin.ts).
+ */
+export const adminDeleteUserCompletely = async (uid: string): Promise<void> => {
+  const user = auth.currentUser;
+  if (!user) throw new ApiException('سجّل الدخول أولًا', 401);
+  const idToken = await user.getIdToken();
+  const res = await fetch('/api/admin/delete-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify({ uid }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ message: 'تعذّر حذف الحساب' }));
+    throw new ApiException(body.message || 'تعذّر حذف الحساب', res.status);
   }
 };

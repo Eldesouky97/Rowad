@@ -7,14 +7,13 @@ import {
   adminCreateUser,
   adminUpdateUser,
   adminPromoteSiteUser,
-  adminDeleteUser,
-  adminDeleteSiteUser,
+  adminDeleteUserCompletely,
   sendAdminPasswordReset,
   ApiException,
   PROTECTED_SUPER_ADMIN_EMAIL,
 } from '@/lib/api';
 import type { AdminUser, AdminRole, SiteUser } from '@/lib/types';
-import { PlusIcon, EditIcon, KeyIcon, BanIcon, TrashIcon, ShieldIcon, StarIcon, EyeIcon } from '@/components/icons';
+import { PlusIcon, EditIcon, KeyIcon, TrashIcon, ShieldIcon, StarIcon, EyeIcon } from '@/components/icons';
 import { ROLES, ROLE_LABELS, ROLE_TONE, inputClass, labelClass, SectionCard, Badge, EmptyState, ErrorText, StatCard, SearchBox, type Notify } from './shared';
 
 interface UnifiedUser {
@@ -126,24 +125,20 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
   }
 
   async function handleRemove(u: UnifiedUser) {
-    if (u.isAdminRecord) {
-      if (!confirm(`تعطيل حساب "${u.name}" سيمنعه فورًا من الدخول للوحة التحكم. تأكيد؟`)) return;
-      try {
-        await adminDeleteUser(u.id);
-        showToast('تم تعطيل الحساب');
-        refreshAdmins();
-      } catch (err) {
-        showToast(err instanceof ApiException ? err.message : 'تعذّر تعطيل الحساب');
-      }
-    } else {
-      if (!confirm(`إزالة "${u.name}" من قائمة المستخدمين؟ حسابه هيفضل شغال وهيظهر تاني لو سجّل دخول من جديد.`)) return;
-      try {
-        await adminDeleteSiteUser(u.id);
-        setSiteUsers((prev) => (prev ?? []).filter((x) => x.id !== u.id));
-        showToast('تم إزالة الحساب من القائمة');
-      } catch (err) {
-        showToast(err instanceof ApiException ? err.message : 'تعذّر الحذف');
-      }
+    if (
+      !confirm(
+        `حذف "${u.name}" نهائيًا؟ ده هيمسح حساب دخوله بالكامل (مش بس صلاحيات لوحة التحكم) وكل بياناته الشخصية وحجوزاته من الموقع وقاعدة البيانات — إجراء لا يمكن التراجع عنه.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await adminDeleteUserCompletely(u.id);
+      showToast('تم حذف الحساب وكل بياناته نهائيًا');
+      refreshAdmins();
+      setSiteUsers((prev) => (prev ?? []).filter((x) => x.id !== u.id));
+    } catch (err) {
+      showToast(err instanceof ApiException ? err.message : 'تعذّر حذف الحساب');
     }
   }
 
@@ -307,9 +302,9 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
                                 onClick={() => handleRemove(u)}
                                 disabled={locked}
                                 className="rounded-lg p-2 text-rose-500 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-30"
-                                aria-label={u.isAdminRecord ? 'تعطيل' : 'حذف من القائمة'}
+                                aria-label="حذف نهائي"
                               >
-                                {u.isAdminRecord ? <BanIcon className="h-4 w-4" /> : <TrashIcon className="h-4 w-4" />}
+                                <TrashIcon className="h-4 w-4" />
                               </button>
                             </div>
                           </td>
@@ -433,8 +428,7 @@ function UserCard({
           disabled={locked}
           className="flex items-center gap-1.5 rounded-full border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-500 disabled:cursor-not-allowed disabled:opacity-30"
         >
-          {user.isAdminRecord ? <BanIcon className="h-3.5 w-3.5" /> : <TrashIcon className="h-3.5 w-3.5" />}
-          {user.isAdminRecord ? 'تعطيل' : 'حذف'}
+          <TrashIcon className="h-3.5 w-3.5" /> حذف نهائي
         </button>
       </div>
     </div>
