@@ -3,3 +3,7 @@ node_modules/
 Thumbs.db
 .claude/
 .vercel/
+
+# مفاتيح خدمة Firebase Admin (صلاحيات كاملة على المشروع) — لازم تفضل محلية فقط
+*firebase-adminsdk*.json
+*serviceAccountKey*.json
