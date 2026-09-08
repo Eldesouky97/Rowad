@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Article } from '@/lib/types';
-import { BookIcon, UsersIcon, CalendarIcon } from './icons';
+import { BookIcon, UsersIcon, CalendarIcon, EyeIcon } from './icons';
 
 const ART_BG: Record<string, string> = {
   'art-1': 'bg-gradient-to-br from-sea to-[#0a4247]',
@@ -36,6 +36,9 @@ export default function ArticleCard({ article }: { article: Article }) {
         <div className="flex flex-wrap gap-3 font-utility text-xs text-[#6b5f4c]">
           <span className="flex items-center gap-1"><UsersIcon className="h-3.5 w-3.5" /> {article.author}</span>
           <span className="flex items-center gap-1"><CalendarIcon className="h-3.5 w-3.5" /> {dateLabel}</span>
+          {article.views != null && article.views > 0 && (
+            <span className="flex items-center gap-1"><EyeIcon className="h-3.5 w-3.5" /> {article.views.toLocaleString('ar-EG')}</span>
+          )}
         </div>
       </div>
     </Link>

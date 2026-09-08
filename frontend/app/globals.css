@@ -100,6 +100,20 @@ body {
   }
 }
 
+/* ============ شريط "عاجل" — تمرير أفقي مستمر لعناوين آخر الأخبار ============ */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee { animation: marquee 28s linear infinite; }
+.animate-marquee:hover { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}
+
 /* ============ Route strip connector (signature element) ============ */
 .route-inner {
   position: relative;

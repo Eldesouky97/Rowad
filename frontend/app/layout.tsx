@@ -3,6 +3,7 @@ import { Noto_Sans_Arabic } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import BreakingNewsTicker from '@/components/BreakingNewsTicker';
 import { ToastProvider } from '@/components/Toast';
 import ProfileCompletionGate from '@/components/ProfileCompletionGate';
 import ScrollToTop from '@/components/ScrollToTop';
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           >
             تخطي إلى المحتوى
           </a>
+          <BreakingNewsTicker />
           <Header />
           <main id="main">{children}</main>
           <Footer />

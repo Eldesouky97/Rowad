@@ -566,6 +566,26 @@ export const adminDeleteArticle = async (id: string): Promise<void> => {
   }
 };
 
+/* ============ عام: تفاعل الزوار مع المقالات (مشاهدات + إعجابات) ============
+ * مسموح بالكتابة على حقلي views/likes فقط لأي زائر (حتى بدون تسجيل دخول) —
+ * القيد الحقيقي مفروض في database.rules.json نفسها (زيادة/نقصان بمقدار ١ فقط
+ * في كل عملية)، وليس هنا. */
+export const incrementArticleViews = async (id: string): Promise<void> => {
+  try {
+    await runTransaction(ref(db, `articles/${id}/views`), (current) => (current || 0) + 1);
+  } catch {
+    // فشل عدّاد المشاهدات مش عملية حرجة — تجاهله بصمت
+  }
+};
+
+export const toggleArticleLike = async (id: string, liked: boolean): Promise<void> => {
+  try {
+    await runTransaction(ref(db, `articles/${id}/likes`), (current) => (current || 0) + (liked ? 1 : -1));
+  } catch (err) {
+    throw translateFirebaseError(err);
+  }
+};
+
 /* ============ Admin: Programs ============ */
 export const adminGetPrograms = async (): Promise<Program[]> => {
   const snap = await get(ref(db, 'programs'));
