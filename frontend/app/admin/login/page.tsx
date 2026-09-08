@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
   useEffect(() => {
     completeAdminGoogleRedirect()
       .then((result) => {
-        if (result) router.push('/admin/dashboard');
+        if (result) router.push('/');
       })
       .catch((err) => {
         setError(err instanceof ApiException ? err.message : 'تعذّر تسجيل الدخول بحساب Google');
@@ -72,7 +72,7 @@ export default function AdminLoginPage() {
       } else {
         await adminLogin(email, password);
       }
-      router.push('/admin/dashboard');
+      router.push('/');
     } catch (err) {
       setError(err instanceof ApiException ? err.message : 'تعذّر تسجيل الدخول');
     } finally {
@@ -85,7 +85,7 @@ export default function AdminLoginPage() {
     setGoogleSubmitting(true);
     try {
       await adminLoginWithGoogle();
-      router.push('/admin/dashboard');
+      router.push('/');
     } catch (err) {
       setError(err instanceof ApiException ? err.message : 'تعذّر تسجيل الدخول بحساب Google');
     } finally {
