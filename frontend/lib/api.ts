@@ -385,34 +385,57 @@ export const addPasswordToAccount = async (password: string): Promise<void> => {
 
 /* ============ Admin: Auth ============ */
 
+// لوحة التحكم بقت متاحة لأي حساب مسجّل دخول — أول مرة يدخل بيها أي حساب
+// (بجوجل أو بريد/كلمة مرور) بيتعمله سجل admins/{uid} تلقائيًا بدور "مشاهد"
+// (viewer) لو معندوش سجل من قبل، بدل رفض الدخول بـ"غير مصرح". الترقية لدور
+// أعلى (محرر/سوبر أدمن) لسه محصورة على سوبر أدمن من قسم المستخدمين — القيد
+// ده متفروض كمان في database.rules.json (auth.uid === $uid وبس أول مرة
+// وبدور viewer)، مش بس هنا.
+async function ensureViewerAdminRecord(uid: string, email: string | null, name: string | null): Promise<AdminUser> {
+  const adminRef = ref(db, `admins/${uid}`);
+  const snap = await get(adminRef);
+  if (snap.exists()) {
+    return { id: uid, ...snap.val() } as AdminUser;
+  }
+  const record = { name: name || email || 'مستخدم جديد', email: email || '', role: 'viewer' as AdminRole };
+  await set(adminRef, record);
+  return { id: uid, ...record };
+}
+
 export const adminLogin = async (email: string, password: string): Promise<{ user: AdminUser }> => {
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    const snap = await get(ref(db, `admins/${cred.user.uid}`));
-    if (!snap.exists()) {
-      await signOut(auth);
-      throw new ApiException('هذا الحساب غير مصرح له بالدخول للوحة التحكم', 403);
-    }
-    return { user: { id: cred.user.uid, ...snap.val() } as AdminUser };
+    const user = await ensureViewerAdminRecord(cred.user.uid, cred.user.email, cred.user.displayName);
+    return { user };
   } catch (err) {
     if (err instanceof ApiException) throw err;
     throw translateFirebaseError(err);
   }
 };
 
-async function verifyAdminAndBuild(uid: string): Promise<{ user: AdminUser }> {
-  const snap = await get(ref(db, `admins/${uid}`));
-  if (!snap.exists()) {
-    await signOut(auth);
-    throw new ApiException('هذا الحساب غير مصرح له بالدخول للوحة التحكم', 403);
+/** إنشاء حساب جديد بالبريد وكلمة المرور من صفحة دخول لوحة التحكم مباشرة —
+ * بيتسجّل بدور "مشاهد" فورًا (زي أي حساب بيدخل أول مرة). */
+export const adminSignUpWithEmail = async (name: string, email: string, password: string): Promise<{ user: AdminUser }> => {
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    if (name) await updateProfile(cred.user, { displayName: name }).catch(() => {});
+    const user = await ensureViewerAdminRecord(cred.user.uid, email, name);
+    return { user };
+  } catch (err) {
+    if (err instanceof ApiException) throw err;
+    throw translateFirebaseError(err);
   }
-  return { user: { id: uid, ...snap.val() } as AdminUser };
+};
+
+async function verifyAdminAndBuild(uid: string, email: string | null, name: string | null): Promise<{ user: AdminUser }> {
+  const user = await ensureViewerAdminRecord(uid, email, name);
+  return { user };
 }
 
 export const adminLoginWithGoogle = async (): Promise<{ user: AdminUser }> => {
   try {
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
-    return await verifyAdminAndBuild(cred.user.uid);
+    return await verifyAdminAndBuild(cred.user.uid, cred.user.email, cred.user.displayName);
   } catch (err) {
     if (err instanceof ApiException) throw err;
     if (needsRedirectFallback(err)) {
@@ -430,7 +453,7 @@ export const completeAdminGoogleRedirect = async (): Promise<{ user: AdminUser }
   try {
     const result = await getRedirectResult(auth);
     if (!result) return null;
-    return await verifyAdminAndBuild(result.user.uid);
+    return await verifyAdminAndBuild(result.user.uid, result.user.email, result.user.displayName);
   } catch (err) {
     if (err instanceof ApiException) throw err;
     throw translateFirebaseError(err);

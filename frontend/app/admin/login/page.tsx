@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminLogin, adminLoginWithGoogle, completeAdminGoogleRedirect, sendPasswordReset, ApiException } from '@/lib/api';
+import { adminLogin, adminSignUpWithEmail, adminLoginWithGoogle, completeAdminGoogleRedirect, sendPasswordReset, ApiException } from '@/lib/api';
 import { CompassIcon } from '@/components/icons';
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -26,6 +26,7 @@ export default function AdminLoginPage() {
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
+  const [signUpMode, setSignUpMode] = useState(false);
 
   // بيكمّل تسجيل الدخول لو الصفحة راجعة من signInWithRedirect (بديل النافذة
   // المنبثقة على متصفحات الموبايل اللي بتقفلها تلقائيًا) — راجع lib/api.ts
@@ -60,12 +61,17 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError(null);
     const form = new FormData(e.currentTarget);
+    const name = String(form.get('name') || '').trim();
     const email = String(form.get('email') || '').trim();
     const password = String(form.get('password') || '');
 
     setSubmitting(true);
     try {
-      await adminLogin(email, password);
+      if (signUpMode) {
+        await adminSignUpWithEmail(name, email, password);
+      } else {
+        await adminLogin(email, password);
+      }
       router.push('/admin/dashboard');
     } catch (err) {
       setError(err instanceof ApiException ? err.message : 'تعذّر تسجيل الدخول');
@@ -92,8 +98,12 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-[420px] rounded-[20px] border border-gold/25 bg-white p-8">
         <div className="mb-6 flex flex-col items-center text-center">
           <CompassIcon className="mb-3 h-10 w-10 text-rust" />
-          <h1 className="font-display text-2xl">دخول لوحة التحكم</h1>
-          <p className="mt-1 text-sm opacity-70">للفريق الإداري لرُوَّاد المحافظات الحدودية فقط</p>
+          <h1 className="font-display text-2xl">{signUpMode ? 'إنشاء حساب' : 'دخول لوحة التحكم'}</h1>
+          <p className="mt-1 text-sm opacity-70">
+            {signUpMode
+              ? 'أي حساب جديد بيتسجّل تلقائيًا بصلاحية "مشاهد"'
+              : 'بأي حساب Google أو بريد إلكتروني — بصلاحية "مشاهد" افتراضيًا'}
+          </p>
         </div>
 
         {checkingRedirect ? (
@@ -135,7 +145,7 @@ export default function AdminLoginPage() {
               disabled={googleSubmitting || submitting}
               className="mb-5 flex w-full items-center justify-center gap-2.5 rounded-full border border-gold/30 bg-white px-4 py-3 text-sm font-bold transition hover:bg-sand disabled:opacity-60"
             >
-              <GoogleIcon /> {googleSubmitting ? 'جارٍ الدخول…' : 'الدخول بحساب Google'}
+              <GoogleIcon /> {googleSubmitting ? 'جارٍ الدخول…' : signUpMode ? 'إنشاء حساب بحساب Google' : 'الدخول بحساب Google'}
             </button>
 
             <div className="mb-5 flex items-center gap-3 text-xs text-ink/40">
@@ -143,6 +153,12 @@ export default function AdminLoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="grid gap-4">
+              {signUpMode && (
+                <div>
+                  <label className="mb-1.5 block font-utility text-sm font-bold">الاسم</label>
+                  <input name="name" type="text" required className="w-full rounded-lg border border-gold/40 px-3 py-3 text-sm" />
+                </div>
+              )}
               <div>
                 <label className="mb-1.5 block font-utility text-sm font-bold">البريد الإلكتروني</label>
                 <input name="email" type="email" required className="w-full rounded-lg border border-gold/40 px-3 py-3 text-sm" />
@@ -150,11 +166,19 @@ export default function AdminLoginPage() {
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
                   <label className="block font-utility text-sm font-bold">كلمة المرور</label>
-                  <button type="button" onClick={() => setForgotMode(true)} className="font-utility text-xs font-bold text-rust hover:underline">
-                    نسيت كلمة المرور؟
-                  </button>
+                  {!signUpMode && (
+                    <button type="button" onClick={() => setForgotMode(true)} className="font-utility text-xs font-bold text-rust hover:underline">
+                      نسيت كلمة المرور؟
+                    </button>
+                  )}
                 </div>
-                <input name="password" type="password" required className="w-full rounded-lg border border-gold/40 px-3 py-3 text-sm" />
+                <input
+                  name="password"
+                  type="password"
+                  required
+                  minLength={signUpMode ? 6 : undefined}
+                  className="w-full rounded-lg border border-gold/40 px-3 py-3 text-sm"
+                />
               </div>
               {error && <p className="text-sm text-[#e08a6b]">{error}</p>}
               <button
@@ -162,9 +186,17 @@ export default function AdminLoginPage() {
                 disabled={submitting || googleSubmitting}
                 className="mt-1 w-full rounded-full bg-night px-4 py-3 font-utility text-sm font-bold text-cream transition hover:bg-night-2 disabled:opacity-60"
               >
-                {submitting ? 'جارٍ الدخول…' : 'تسجيل الدخول'}
+                {submitting ? 'جارٍ التنفيذ…' : signUpMode ? 'إنشاء الحساب' : 'تسجيل الدخول'}
               </button>
             </form>
+
+            <button
+              type="button"
+              onClick={() => { setSignUpMode((v) => !v); setError(null); }}
+              className="mt-4 w-full text-center text-sm font-bold text-rust hover:underline"
+            >
+              {signUpMode ? 'لديك حساب بالفعل؟ سجّل الدخول' : 'حساب جديد؟ أنشئ حساب'}
+            </button>
           </>
         )}
       </div>

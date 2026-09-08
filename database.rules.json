@@ -7,7 +7,7 @@
       ".read": "auth != null && root.child('admins').child(auth.uid).child('role').val() === 'super_admin'",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && root.child('admins').child(auth.uid).child('role').val() === 'super_admin' && (data.child('email').val() !== 'eldesouky71@gmail.com' || (newData.exists() && newData.child('role').val() === 'super_admin'))",
+        ".write": "auth != null && ((root.child('admins').child(auth.uid).child('role').val() === 'super_admin' && (data.child('email').val() !== 'eldesouky71@gmail.com' || (newData.exists() && newData.child('role').val() === 'super_admin'))) || (auth.uid === $uid && !data.exists() && newData.child('role').val() === 'viewer' && newData.child('email').val() === auth.token.email))",
         ".validate": "newData.hasChildren(['name','email','role'])",
         "name":  { ".validate": "newData.isString() && newData.val().length > 0" },
         "email": { ".validate": "newData.isString() && newData.val().length > 0" },
