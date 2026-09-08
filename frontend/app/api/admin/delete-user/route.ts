@@ -53,6 +53,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  try {
+    return await handleDelete(req, token);
+  } catch (err) {
+    console.error('/api/admin/delete-user failed', err);
+    const message = err instanceof Error ? err.message : 'خطأ غير معروف';
+    return NextResponse.json({ message: `تعذّر حذف الحساب: ${message}` }, { status: 500 });
+  }
+}
+
+async function handleDelete(req: NextRequest, token: string): Promise<NextResponse> {
   let callerUid: string;
   let callerEmail: string | undefined;
   try {

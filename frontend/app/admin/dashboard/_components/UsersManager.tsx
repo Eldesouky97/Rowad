@@ -184,9 +184,15 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
           </form>
         )}
 
-        {loadError && <ErrorText message={loadError} />}
-
-        {loading ? (
+        {loadError ? (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-5">
+            <p className="mb-1 font-bold text-rose-700">تعذّر جلب قائمة الحسابات</p>
+            <p className="text-sm text-rose-600">{loadError}</p>
+            <button onClick={refresh} className="mt-3 rounded-full border border-rose-300 px-4 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100">
+              إعادة المحاولة
+            </button>
+          </div>
+        ) : loading ? (
           <p className="py-6 text-center text-sm text-ink/45">جارٍ التحميل…</p>
         ) : filtered.length === 0 ? (
           <EmptyState message={search ? 'لا توجد نتائج مطابقة.' : 'لا يوجد مستخدمون مسجّلون بعد.'} />

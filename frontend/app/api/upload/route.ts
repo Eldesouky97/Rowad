@@ -29,21 +29,29 @@ async function verifyCaller(req: NextRequest): Promise<{ uid: string; isAdmin: b
   const authHeader = req.headers.get('authorization') || '';
   const token = authHeader.replace(/^Bearer\s+/i, '');
   if (!token) return null;
-  try {
-    const decoded = await adminAuth().verifyIdToken(token);
-    const roleSnap = await adminDb().ref(`admins/${decoded.uid}/role`).get();
-    return { uid: decoded.uid, isAdmin: roleSnap.exists() };
-  } catch {
-    return null;
-  }
+  // فشل verifyIdToken هنا معناه توكن غير صالح (زائر مش مسجّل دخول فعليًا) —
+  // بيرجّع null. أي خطأ تاني (زي مفتاح خدمة Admin SDK مكتوب غلط) لازم يتفرقن
+  // عنه ويطلع للطالب بوضوح (503) بدل ما يتلبس بـ "سجّل الدخول" المضلِّلة.
+  const decoded = await adminAuth()
+    .verifyIdToken(token)
+    .catch((err) => {
+      const code = (err as { code?: string })?.code || '';
+      if (code.startsWith('auth/')) return null;
+      throw err;
+    });
+  if (!decoded) return null;
+  const roleSnap = await adminDb().ref(`admins/${decoded.uid}/role`).get();
+  return { uid: decoded.uid, isAdmin: roleSnap.exists() };
 }
 
 export async function POST(req: NextRequest) {
   let caller;
   try {
     caller = await verifyCaller(req);
-  } catch {
-    return NextResponse.json({ message: 'خدمة رفع الصور غير مهيّأة على السيرفر بعد' }, { status: 503 });
+  } catch (err) {
+    console.error('/api/upload verifyCaller failed', err);
+    const message = err instanceof Error ? err.message : 'خطأ غير معروف';
+    return NextResponse.json({ message: `خدمة رفع الصور غير مهيّأة على السيرفر بعد: ${message}` }, { status: 503 });
   }
   if (!caller) {
     return NextResponse.json({ message: 'يجب تسجيل الدخول لرفع الصور' }, { status: 401 });
@@ -95,8 +103,10 @@ export async function DELETE(req: NextRequest) {
   let caller;
   try {
     caller = await verifyCaller(req);
-  } catch {
-    return NextResponse.json({ message: 'خدمة حذف الصور غير مهيّأة على السيرفر بعد' }, { status: 503 });
+  } catch (err) {
+    console.error('/api/upload DELETE verifyCaller failed', err);
+    const message = err instanceof Error ? err.message : 'خطأ غير معروف';
+    return NextResponse.json({ message: `خدمة حذف الصور غير مهيّأة على السيرفر بعد: ${message}` }, { status: 503 });
   }
   // حذف صورة (استبدال صورة قديمة أو حذف عنصر) عملية إدارية دايمًا حاليًا —
   // ما فيش مسار في التطبيق بيحذف صورة بروفايل زائر عادي.
