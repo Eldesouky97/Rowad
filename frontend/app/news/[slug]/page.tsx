@@ -1,9 +1,18 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import DOMPurify from 'isomorphic-dompurify';
 import { getArticle, getArticles, ApiException } from '@/lib/publicApi';
 import ArticleCard from '@/components/ArticleCard';
 import ArticleEngagement from '@/components/ArticleEngagement';
 import { UsersIcon, CalendarIcon, ArrowIcon, BookIcon } from '@/components/icons';
+
+// مقالات جديدة بتتكتب بمحرر تنسيق غني (HTML)، ومقالات قديمة كانت نص خام
+// بفواصل سطرين بين الفقرات — بنفرّق بينهم بوجود أي وسم HTML من عدمه، عشان
+// المقالات القديمة تفضل تتعرض صح من غير ما تحتاج ترحيل بيانات.
+const HTML_TAG_RE = /<([a-z][\w-]*)\b[^>]*>/i;
+function isHtmlContent(content: string): boolean {
+  return HTML_TAG_RE.test(content);
+}
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   try {
@@ -61,11 +70,18 @@ export default async function ArticlePage({ params }: { params: { slug: string }
           title={article.title}
         />
 
-        <div className="mt-8 space-y-4 text-[1.02rem] leading-8 opacity-90">
-          {article.content.split('\n\n').map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-        </div>
+        {isHtmlContent(article.content) ? (
+          <div
+            className="rich-content mt-8 text-[1.02rem] leading-8 opacity-90"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content) }}
+          />
+        ) : (
+          <div className="mt-8 space-y-4 text-[1.02rem] leading-8 opacity-90">
+            {article.content.split('\n\n').map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
+        )}
 
         {article.tags && article.tags.length > 0 && (
           <div className="mt-8 flex flex-wrap gap-2">

@@ -2,7 +2,7 @@ import type { AdminUser, Publishable } from '@/lib/types';
 import { GOVERNORATES, COMMITTEES } from '@/lib/constants';
 import { SearchIcon, UsersIcon } from '@/components/icons';
 
-export const ARTICLE_CATEGORIES = ['أخبار الكيان', 'قصص نجاح', 'فعاليات', 'تنمية مجتمعية', 'مقالات رأي'];
+export const ARTICLE_CATEGORIES = ['أخبار الكيان', 'تنمية مجتمعية', 'مقالات رأي'];
 export const GOVS = [...GOVERNORATES, 'عام'];
 export const PROGRAM_CATEGORIES = COMMITTEES;
 export const ART_THEMES = ['art-1', 'art-2', 'art-3', 'art-4'];

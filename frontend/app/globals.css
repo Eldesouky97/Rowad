@@ -114,6 +114,28 @@ body {
   }
 }
 
+/* ============ محتوى غني (محرر المقالات في لوحة التحكم + عرضها للجمهور) ============ */
+.rich-content h2 { margin: 1.4em 0 0.5em; font-size: 1.35em; font-weight: 700; line-height: 1.4; }
+.rich-content h3 { margin: 1.2em 0 0.5em; font-size: 1.15em; font-weight: 700; line-height: 1.4; }
+.rich-content p { margin: 0.85em 0; }
+.rich-content p:first-child { margin-top: 0; }
+.rich-content ul, .rich-content ol { margin: 0.85em 0; padding-inline-start: 1.5em; }
+.rich-content ul { list-style: disc; }
+.rich-content ol { list-style: decimal; }
+.rich-content li { margin: 0.3em 0; }
+.rich-content blockquote { margin: 1em 0; padding-inline-start: 1em; border-inline-start: 3px solid #C79A45; opacity: 0.85; font-style: italic; }
+.rich-content a { color: #9C4A2E; text-decoration: underline; text-underline-offset: 2px; }
+.rich-content strong { font-weight: 700; }
+.rich-content hr { margin: 1.5em 0; border: none; border-top: 1px solid rgba(0, 0, 0, 0.1); }
+.rich-content .ProseMirror { outline: none; }
+.rich-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: right;
+  color: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  height: 0;
+}
+
 /* ============ Route strip connector (signature element) ============ */
 .route-inner {
   position: relative;

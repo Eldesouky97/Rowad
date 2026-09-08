@@ -9,7 +9,7 @@ import { getArticles } from '@/lib/api';
 import type { Article } from '@/lib/types';
 import { SearchIcon, EyeIcon, StarIcon, BookIcon } from '@/components/icons';
 
-const CATS = ['الكل', 'أخبار الكيان', 'قصص نجاح', 'فعاليات', 'تنمية مجتمعية', 'مقالات رأي'];
+const CATS = ['الكل', 'أخبار الكيان', 'تنمية مجتمعية', 'مقالات رأي'];
 const ART_BG: Record<string, string> = {
   'art-1': 'bg-gradient-to-br from-sea to-[#0a4247]',
   'art-2': 'bg-gradient-to-br from-rust to-[#7a3620]',

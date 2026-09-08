@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { adminGetArticles, adminCreateArticle, adminUpdateArticle, adminDeleteArticle, ApiException } from '@/lib/api';
 import type { Article } from '@/lib/types';
 import { PlusIcon, EditIcon, TrashIcon } from '@/components/icons';
+import RichTextEditor from '@/components/RichTextEditor';
 import {
   ARTICLE_CATEGORIES, GOVS, inputClass, labelClass,
   SectionCard, Badge, EmptyState, ErrorText, PublisherNote, PendingBadge, EditorReviewNotice, publishToast, type Notify,
@@ -23,14 +24,15 @@ export default function ArticlesManager({
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [content, setContent] = useState('');
 
   function refresh() {
     adminGetArticles().then(setItems).catch(() => setItems([]));
   }
   useEffect(refresh, []);
 
-  function openCreate() { setEditing(null); setShowForm(true); }
-  function openEdit(a: Article) { setEditing(a); setShowForm(true); }
+  function openCreate() { setEditing(null); setContent(''); setShowForm(true); }
+  function openEdit(a: Article) { setEditing(a); setContent(a.content); setShowForm(true); }
   function closeForm() { setShowForm(false); setEditing(null); setError(null); }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -44,12 +46,18 @@ export default function ArticlesManager({
       governorate: String(form.get('governorate') || 'عام'),
       author: String(form.get('author') || '').trim(),
       excerpt: String(form.get('excerpt') || '').trim(),
-      content: String(form.get('content') || '').trim(),
+      content,
       tags: tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : [],
       read_minutes: Number(form.get('read_minutes') || 5),
       is_featured: form.get('is_featured') === 'on',
     };
     if (editing) payload.is_published = form.get('is_published') === 'on';
+
+    const contentText = content.replace(/<[^>]+>/g, '').trim();
+    if (!contentText) {
+      setError('من فضلك اكتب نص المقال');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -137,7 +145,7 @@ export default function ArticlesManager({
           </div>
           <div className="sm:col-span-2">
             <label className={labelClass}>نص المقال الكامل</label>
-            <textarea name="content" required rows={6} defaultValue={editing?.content} className={inputClass} />
+            <RichTextEditor value={content} onChange={setContent} placeholder="اكتب نص المقال هنا… استخدم شريط الأدوات للعناوين والقوائم والروابط" />
           </div>
           <ErrorText message={error} />
           <div className="flex gap-3 sm:col-span-2">

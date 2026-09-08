@@ -42,7 +42,9 @@ export const getArticles = async (params: { category?: string; q?: string } = {}
   }
   if (params.q) {
     const q = params.q.trim();
-    list = list.filter((a) => a.title.includes(q) || a.excerpt.includes(q) || a.author.includes(q));
+    list = list.filter(
+      (a) => a.title.includes(q) || a.excerpt.includes(q) || a.author.includes(q) || (a.tags ?? []).some((tag) => tag === q)
+    );
   }
   list.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
   return list;
