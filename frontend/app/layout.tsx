@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { ToastProvider } from '@/components/Toast';
 import ProfileCompletionGate from '@/components/ProfileCompletionGate';
+import ScrollToTop from '@/components/ScrollToTop';
 
 const notoSansArabic = Noto_Sans_Arabic({
   subsets: ['arabic'],
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main id="main">{children}</main>
           <Footer />
           <ProfileCompletionGate />
+          <ScrollToTop />
         </ToastProvider>
       </body>
     </html>

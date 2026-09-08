@@ -20,9 +20,11 @@ import {
 } from '@/lib/api';
 import { getMyBookedEventIds } from '@/lib/bookings';
 import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum, SectionsVisibility } from '@/lib/types';
+import Counter from '@/components/Counter';
 import {
   CalendarIcon, ArrowIcon, HandsIcon, BookIcon, CompassIcon,
   LeafIcon, MegaphoneIcon, HeartIcon, StarIcon, ImageIcon, LayersIcon, ZoomIcon, UsersIcon, PinIcon, SearchIcon,
+  FlagIcon, SparkIcon,
 } from '@/components/icons';
 
 const ART_BG: Record<string, string> = {
@@ -169,48 +171,96 @@ export default function HomePage() {
     <>
       {/* ============ HERO ============ */}
       <section className="relative overflow-hidden bg-[radial-gradient(120%_140%_at_15%_-10%,#4338CA_0%,#1E1B4B_55%,#141235_100%)] pt-16 text-cream">
-        <div className="mx-auto grid max-w-[1180px] gap-10 px-5 pb-16 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+        {/* عناصر زخرفية عائمة — خفيفة وبطيئة عشان متلفتش الانتباه عن النص */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="animate-float-a absolute -right-24 -top-24 h-[380px] w-[380px] rounded-full bg-violet-500/20 blur-[100px]" />
+          <div className="animate-float-b absolute -left-20 top-1/3 h-[320px] w-[320px] rounded-full bg-gold-2/10 blur-[100px]" />
+          <div
+            className="absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+              backgroundSize: '44px 44px',
+            }}
+          />
+        </div>
+
+        <div className="relative mx-auto grid max-w-[1180px] gap-10 px-5 pb-16 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
           <div>
-            <div className="mb-5 flex items-center gap-2.5 font-utility text-xs font-bold tracking-[0.14em] text-gold-2">
-              <span className="h-0.5 w-6 bg-gold-2" />
+            <div className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-gold-2/25 bg-gold-2/10 px-4 py-1.5 font-utility text-xs font-bold tracking-[0.1em] text-gold-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-soft-pulse absolute inline-flex h-full w-full rounded-full bg-gold-2" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-gold-2" />
+              </span>
               مبادرة أهلية معتمدة
             </div>
             <h1 className="font-display text-4xl font-bold leading-tight sm:text-5xl">
               نحو تنمية شاملة ومستدامة
               <br />
-              <em className="not-italic text-gold-2">في المحافظات الحدودية المصرية</em>
+              <em className="not-italic bg-gradient-to-l from-gold-2 to-amber-200 bg-clip-text text-transparent">في المحافظات الحدودية المصرية</em>
             </h1>
             <p className="mt-6 max-w-[46ch] text-lg opacity-90">
               تمكين الشباب وبناء المستقبل — &quot;رُوَّاد&quot; كيان شبابي يعمل على تحويل موقع
               محافظات مصر الحدودية من تحدٍ إلى ميزة، ومن حدّ فاصل إلى بوابة تنمية.
             </p>
             <div className="mt-9 flex flex-wrap gap-4">
-              <Link href="/activities" className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-7 py-3.5 font-utility text-sm font-bold text-white transition hover:bg-violet-700">
-                <CalendarIcon className="h-4 w-4" /> ابدأ رحلتك
+              <Link
+                href="/activities"
+                className="group inline-flex items-center gap-2 rounded-full bg-violet-600 px-7 py-3.5 font-utility text-sm font-bold text-white shadow-[0_10px_30px_-8px_rgba(124,58,237,0.7)] transition-all hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-[0_14px_36px_-8px_rgba(124,58,237,0.85)]"
+              >
+                <CalendarIcon className="h-4 w-4 transition-transform group-hover:scale-110" /> ابدأ رحلتك
               </Link>
-              <Link href="/about" className="inline-flex items-center gap-2 rounded-full border-2 border-cream/70 px-7 py-3.5 font-utility text-sm font-bold transition hover:bg-gold/10">
+              <Link href="/about" className="inline-flex items-center gap-2 rounded-full border-2 border-cream/70 px-7 py-3.5 font-utility text-sm font-bold transition hover:-translate-y-0.5 hover:bg-gold/10">
                 <ArrowIcon className="h-4 w-4" /> تعرف أكثر
               </Link>
+            </div>
+
+            {/* شريط إحصائيات مصغّر — لمسة موثوقية سريعة قبل ما الزائر ينزل للصفحة */}
+            <div className="mt-10 flex flex-wrap gap-x-8 gap-y-4 border-t border-cream/10 pt-6">
+              <div>
+                <b className="font-utility text-2xl font-black text-gold-2"><Counter value={1200} prefix="+" /></b>
+                <span className="mr-1.5 text-xs opacity-70">مستفيد</span>
+              </div>
+              <div>
+                <b className="font-utility text-2xl font-black text-gold-2"><Counter value={60} prefix="+" /></b>
+                <span className="mr-1.5 text-xs opacity-70">مشروع منجز</span>
+              </div>
+              <div>
+                <b className="font-utility text-2xl font-black text-gold-2"><Counter value={10} /></b>
+                <span className="mr-1.5 text-xs opacity-70">محافظات</span>
+              </div>
             </div>
           </div>
 
           <div className="rounded-[20px] border border-gold/30 bg-cream/[0.06] p-7 backdrop-blur-sm">
-            <h3 className="mb-4 font-utility text-sm text-gold-2">لماذا الحدود تحديدًا؟</h3>
+            <h3 className="mb-4 flex items-center gap-2 font-utility text-sm text-gold-2">
+              <FlagIcon className="h-4 w-4" /> لماذا الحدود تحديدًا؟
+            </h3>
             <ul className="divide-y divide-gold/15">
-              <li className="flex items-baseline gap-2 py-3 text-sm first:pt-0">
-                <b className="font-utility text-cream">٪ كبيرة من مساحة مصر</b>
-                <span className="mr-auto opacity-80">تقع ضمن المحافظات المستهدفة</span>
-              </li>
-              <li className="flex items-baseline gap-2 py-3 text-sm">
-                <b className="font-utility text-cream">فرص واعدة</b>
-                <span className="mr-auto opacity-80">سياحة، زراعة صحراوية، ثروة سمكية ومعدنية</span>
-              </li>
-              <li className="flex items-baseline gap-2 py-3 text-sm last:pb-0">
-                <b className="font-utility text-cream">شباب بلا منصة</b>
-                <span className="mr-auto opacity-80">طاقات محلية تحتاج تدريبًا وربطًا بالفرص</span>
-              </li>
+              {[
+                { icon: PinIcon, title: '٪ كبيرة من مساحة مصر', desc: 'تقع ضمن المحافظات المستهدفة' },
+                { icon: SparkIcon, title: 'فرص واعدة', desc: 'سياحة، زراعة صحراوية، ثروة سمكية ومعدنية' },
+                { icon: UsersIcon, title: 'شباب بلا منصة', desc: 'طاقات محلية تحتاج تدريبًا وربطًا بالفرص' },
+              ].map((item) => (
+                <li key={item.title} className="group flex items-start gap-3 py-3.5 text-sm transition-colors first:pt-0 last:pb-0">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold-2/10 text-gold-2 transition-colors group-hover:bg-gold-2/20">
+                    <item.icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <b className="block font-utility text-cream">{item.title}</b>
+                    <span className="opacity-75">{item.desc}</span>
+                  </span>
+                </li>
+              ))}
             </ul>
           </div>
+        </div>
+
+        {/* مؤشر تمرير */}
+        <div className="relative hidden justify-center pb-8 sm:flex">
+          <a href="#about" aria-label="انزل للمحتوى" className="animate-bounce-y flex flex-col items-center gap-1.5 text-cream/50 transition hover:text-cream/80">
+            <span className="font-utility text-[10px] tracking-widest">اكتشف المزيد</span>
+            <ArrowIcon className="h-4 w-4 -rotate-90" />
+          </a>
         </div>
       </section>
 
@@ -253,12 +303,12 @@ export default function HomePage() {
             ))}
           </div>
 
-          <div className="mt-12 grid grid-cols-2 gap-6 border-t border-gold/20 pt-10 md:grid-cols-4">
-            <Stat value="+١٢٠٠" label="شاب وشابة مستفيدون" />
-            <Stat value="+٦٠" label="مشروع منجز" />
-            <Stat value="١٠" label="محافظات مستهدفة" />
-            <Stat value="٩٤٪" label="نسبة رضا المستفيدين" />
-          </div>
+          <Reveal variant="stagger" className="mt-12 grid grid-cols-2 gap-6 border-t border-gold/20 pt-10 md:grid-cols-4">
+            <Stat value={1200} prefix="+" label="شاب وشابة مستفيدون" />
+            <Stat value={60} prefix="+" label="مشروع منجز" />
+            <Stat value={10} label="محافظات مستهدفة" />
+            <Stat value={94} suffix="٪" label="نسبة رضا المستفيدين" />
+          </Reveal>
 
           <div className="mt-10">
             <Link href="/about" className="inline-block rounded-full bg-violet-600 px-6 py-3 font-utility text-sm font-bold text-white transition hover:bg-violet-700">
@@ -310,7 +360,7 @@ export default function HomePage() {
           {programsVisible.length === 0 ? (
             <p className="py-10 text-center text-sm opacity-50">لا توجد برامج مطابقة لبحثك.</p>
           ) : (
-            <Reveal key={`${programCategory}-${programSearch}`} className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <Reveal key={`${programCategory}-${programSearch}`} variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {programsVisible.map((p) => {
                 const Icon = PROGRAM_ICONS[p.category] ?? BookIcon;
                 return (
@@ -342,7 +392,7 @@ export default function HomePage() {
             </p>
             <h2 className="font-display text-3xl">آخر المقالات والأخبار حول تطوير المحافظات</h2>
           </Reveal>
-          <Reveal className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Reveal variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {articles.map((a) => (
               <ArticleCard key={a.id} article={a} />
             ))}
@@ -367,7 +417,7 @@ export default function HomePage() {
               من الملتقيات الوطنية إلى القوافل التنموية والمعسكرات التطوعية، هذه أقرب محطاتنا القادمة.
             </p>
           </Reveal>
-          <Reveal className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Reveal variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((ev) => (
               <EventCard key={ev.id} event={ev} booked={bookedIds.includes(ev.id)} onBook={setBookingEvent} />
             ))}
@@ -389,7 +439,7 @@ export default function HomePage() {
             </p>
             <h2 className="font-display text-3xl">استمع إلى قصص شباب استفادوا من برامجنا</h2>
           </Reveal>
-          <Reveal className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Reveal variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {stories.map((s) => (
               <div
                 key={s.id}
@@ -484,7 +534,7 @@ export default function HomePage() {
           {galleryVisible.length === 0 ? (
             <p className="py-10 text-center text-sm text-cream/50">لا توجد صور في هذا الألبوم بعد.</p>
           ) : (
-            <Reveal key={galleryFilter} className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <Reveal key={galleryFilter} variant="stagger" className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {galleryVisible.map((g, i) => (
                 <GalleryTile key={g.id} g={g} onOpen={() => setLightboxIndex(i)} />
               ))}
@@ -510,7 +560,7 @@ export default function HomePage() {
             </p>
             <h2 className="font-display text-3xl">نغطي المحافظات المصرية ببرامج ومبادرات متنوعة</h2>
           </Reveal>
-          <Reveal className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Reveal variant="stagger" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {governorates.map((g) => (
               <div
                 key={g.id}
@@ -576,17 +626,26 @@ export default function HomePage() {
 
       {/* ============ CTA ============ */}
       <section className="bg-cream py-16">
-        <Reveal className="mx-auto max-w-[1180px] px-5 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-6 rounded-[24px] bg-gradient-to-l from-violet-700 to-indigo-900 p-10 text-white">
-            <div>
-              <h3 className="max-w-[34ch] font-display text-2xl">عندك فكرة مشروع أو مبادرة في محافظتك؟</h3>
-              <p className="mt-2 max-w-[44ch] opacity-90">
-                رُوَّاد بيدعم شباب المحافظات بالتدريب والتمويل الأولي والربط بالجهات الشريكة.
-              </p>
+        <Reveal variant="scale" className="mx-auto max-w-[1180px] px-5 sm:px-6">
+          <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-l from-violet-700 to-indigo-900 p-10 text-white">
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div className="animate-float-a absolute -left-16 -top-20 h-64 w-64 rounded-full bg-white/10 blur-[70px]" />
+              <div className="animate-float-b absolute -bottom-24 -right-10 h-72 w-72 rounded-full bg-gold-2/20 blur-[80px]" />
             </div>
-            <a href="#contact" className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 font-utility text-sm font-bold text-violet-700 transition hover:bg-gold-2/40">
-              <HandsIcon className="h-4 w-4" /> تواصل مع فريقنا
-            </a>
+            <div className="relative flex flex-wrap items-center justify-between gap-6">
+              <div>
+                <h3 className="max-w-[34ch] font-display text-2xl">عندك فكرة مشروع أو مبادرة في محافظتك؟</h3>
+                <p className="mt-2 max-w-[44ch] opacity-90">
+                  رُوَّاد بيدعم شباب المحافظات بالتدريب والتمويل الأولي والربط بالجهات الشريكة.
+                </p>
+              </div>
+              <a
+                href="#contact"
+                className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 font-utility text-sm font-bold text-violet-700 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-gold-2/40"
+              >
+                <HandsIcon className="h-4 w-4 transition-transform group-hover:rotate-12" /> تواصل مع فريقنا
+              </a>
+            </div>
           </div>
         </Reveal>
       </section>
@@ -613,10 +672,12 @@ export default function HomePage() {
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Stat({ value, label, prefix = '', suffix = '' }: { value: number; label: string; prefix?: string; suffix?: string }) {
   return (
     <div>
-      <b className="block font-utility text-3xl font-black text-rust sm:text-4xl">{value}</b>
+      <b className="block font-utility text-3xl font-black text-rust sm:text-4xl">
+        <Counter value={value} prefix={prefix} suffix={suffix} />
+      </b>
       <span className="text-sm opacity-75">{label}</span>
     </div>
   );

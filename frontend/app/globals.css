@@ -11,24 +11,92 @@ body {
   color: #1e1b4b;
 }
 
-/* ============ Scroll reveal ============ */
-.reveal {
+/* ============ Scroll reveal — أنواع حركة متعددة + stagger ============ */
+.reveal,
+.reveal-scale,
+.reveal-right,
+.reveal-left {
   opacity: 0;
-  transform: translateY(22px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.reveal.is-visible {
+.reveal { transform: translateY(28px); }
+.reveal-scale { transform: scale(0.94) translateY(10px); }
+.reveal-right { transform: translateX(-32px); }
+.reveal-left { transform: translateX(32px); }
+
+.reveal.is-visible,
+.reveal-scale.is-visible,
+.reveal-right.is-visible,
+.reveal-left.is-visible {
   opacity: 1;
   transform: none;
 }
+
+/* الأطفال المباشرين بيتحركوا واحد ورا التاني بفاصل زمني بسيط */
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-stagger.is-visible > * {
+  opacity: 1;
+  transform: none;
+}
+.reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; }
+.reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 70ms; }
+.reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 140ms; }
+.reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 210ms; }
+.reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 280ms; }
+.reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 350ms; }
+.reveal-stagger.is-visible > *:nth-child(7) { transition-delay: 420ms; }
+.reveal-stagger.is-visible > *:nth-child(8) { transition-delay: 490ms; }
+.reveal-stagger.is-visible > *:nth-child(n+9) { transition-delay: 560ms; }
+
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
+  .reveal,
+  .reveal-scale,
+  .reveal-right,
+  .reveal-left,
+  .reveal-stagger > * {
     opacity: 1;
     transform: none;
     transition: none;
   }
   html {
     scroll-behavior: auto;
+  }
+}
+
+/* ============ عناصر زخرفية عائمة (خلفية الـ Hero وقسم التواصل) ============ */
+@keyframes float-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(24px, -30px) scale(1.06); }
+}
+@keyframes float-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-28px, 22px) scale(1.08); }
+}
+.animate-float-a { animation: float-a 9s ease-in-out infinite; }
+.animate-float-b { animation: float-b 12s ease-in-out infinite; }
+
+@keyframes soft-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.animate-soft-pulse { animation: soft-pulse 2.4s ease-in-out infinite; }
+
+@keyframes bounce-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+.animate-bounce-y { animation: bounce-y 1.8s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-a,
+  .animate-float-b,
+  .animate-soft-pulse,
+  .animate-bounce-y {
+    animation: none;
   }
 }
 

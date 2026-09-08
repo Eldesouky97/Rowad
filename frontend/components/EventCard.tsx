@@ -28,13 +28,20 @@ export default function EventCard({
   });
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-[18px] border border-gold/25 bg-cream shadow-card transition-transform hover:-translate-y-1">
+    <div className="group flex flex-col overflow-hidden rounded-[18px] border border-gold/25 bg-cream shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
       {event.image_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={event.image_url} alt={event.title} loading="lazy" className="h-[132px] w-full object-cover" />
+        <div className="h-[132px] w-full overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={event.image_url}
+            alt={event.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+        </div>
       ) : (
-        <div className={`relative flex h-[132px] items-center justify-center text-cream/85 ${ART_BG[event.art_theme]}`}>
-          <CalendarIcon className="h-11 w-11 opacity-90" />
+        <div className={`relative flex h-[132px] items-center justify-center overflow-hidden text-cream/85 ${ART_BG[event.art_theme]}`}>
+          <CalendarIcon className="h-11 w-11 opacity-90 transition-transform duration-500 group-hover:scale-110" />
         </div>
       )}
       <div className="flex flex-1 flex-col gap-3 p-6">
@@ -50,7 +57,7 @@ export default function EventCard({
             {event.category}
           </span>
         </div>
-        <h3 className="font-display text-lg leading-snug">{event.title}</h3>
+        <h3 className="font-display text-lg leading-snug transition-colors group-hover:text-violet-700">{event.title}</h3>
         <div className="flex flex-wrap gap-3 font-utility text-xs text-[#6b5f4c]">
           <span className="flex items-center gap-1"><CalendarIcon className="h-3.5 w-3.5" /> {dateLabel}</span>
           <span className="flex items-center gap-1"><PinIcon className="h-3.5 w-3.5" /> {event.location}</span>

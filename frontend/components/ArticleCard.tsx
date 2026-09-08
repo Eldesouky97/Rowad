@@ -19,10 +19,10 @@ export default function ArticleCard({ article }: { article: Article }) {
   return (
     <Link
       href={`/news/${article.slug}`}
-      className="flex flex-col overflow-hidden rounded-[18px] border border-gold/25 bg-cream shadow-card transition-transform hover:-translate-y-1"
+      className="group flex flex-col overflow-hidden rounded-[18px] border border-gold/25 bg-cream shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
     >
-      <div className={`flex h-[132px] items-center justify-center text-cream/85 ${ART_BG[article.art_theme]}`}>
-        <BookIcon className="h-11 w-11 opacity-90" />
+      <div className={`flex h-[132px] items-center justify-center overflow-hidden text-cream/85 ${ART_BG[article.art_theme]}`}>
+        <BookIcon className="h-11 w-11 opacity-90 transition-transform duration-500 group-hover:scale-110" />
       </div>
       <div className="flex flex-1 flex-col gap-3 p-6">
         <div className="flex items-center justify-between gap-2">
@@ -31,7 +31,7 @@ export default function ArticleCard({ article }: { article: Article }) {
             {article.governorate}
           </span>
         </div>
-        <h3 className="font-display text-lg leading-snug">{article.title}</h3>
+        <h3 className="font-display text-lg leading-snug transition-colors group-hover:text-violet-700">{article.title}</h3>
         <p className="flex-1 text-sm opacity-85">{article.excerpt}</p>
         <div className="flex flex-wrap gap-3 font-utility text-xs text-[#6b5f4c]">
           <span className="flex items-center gap-1"><UsersIcon className="h-3.5 w-3.5" /> {article.author}</span>
