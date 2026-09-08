@@ -1,4 +1,15 @@
-export interface EventItem {
+/**
+ * حقول مشتركة لكل محتوى قابل للنشر: مين الأدمن اللي نشره فعليًا (created_by_*
+ * — يتسجّل تلقائيًا، بيظهر بلوحة التحكم بس وليس للجمهور) و"اسم الكاتب" (author
+ * — اختياري، الأدمن بيكتبه بنفسه ليظهر للجمهور، مش بالضرورة نفس اسم الأدمن).
+ */
+export interface Publishable {
+  created_by_uid?: string;
+  created_by_name?: string;
+  author?: string;
+}
+
+export interface EventItem extends Publishable {
   id: string;
   title: string;
   slug: string;
@@ -48,7 +59,7 @@ export interface Booking {
   created_at: string;
 }
 
-export interface Article {
+export interface Article extends Publishable {
   id: string;
   title: string;
   slug: string;
@@ -80,7 +91,7 @@ export interface ArticleItemPayload {
   is_published?: boolean;
 }
 
-export interface Program {
+export interface Program extends Publishable {
   id: string;
   title: string;
   category: 'التعليم' | 'السياحة' | 'التضامن' | 'الزراعة' | 'الإعلام' | 'الصحة';
@@ -90,7 +101,7 @@ export interface Program {
   is_published: boolean;
 }
 
-export interface Governorate {
+export interface Governorate extends Publishable {
   id: string;
   name: string;
   slug: string;
@@ -99,11 +110,13 @@ export interface Governorate {
   projects_completed: number;
   completion_percentage: number;
   art_theme: 'art-1' | 'art-2' | 'art-3' | 'art-4';
+  storage_path?: string | null;
+  image_url?: string | null;
   order: number;
   is_published: boolean;
 }
 
-export interface SuccessStory {
+export interface SuccessStory extends Publishable {
   id: string;
   name: string;
   role_title: string;
@@ -115,7 +128,7 @@ export interface SuccessStory {
   is_published: boolean;
 }
 
-export interface GalleryAlbum {
+export interface GalleryAlbum extends Publishable {
   id: string;
   title: string;
   description: string | null;
@@ -124,7 +137,7 @@ export interface GalleryAlbum {
   created_at: string;
 }
 
-export interface GalleryImage {
+export interface GalleryImage extends Publishable {
   id: string;
   title: string;
   caption: string | null;

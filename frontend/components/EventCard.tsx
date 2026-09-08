@@ -51,6 +51,7 @@ export default function EventCard({
           <span className="flex items-center gap-1"><PinIcon className="h-3.5 w-3.5" /> {event.location}</span>
         </div>
         <p className="flex-1 text-sm opacity-85">{event.description}</p>
+        {event.author && <p className="text-[11px] font-bold text-[#6b5f4c]">بقلم: {event.author}</p>}
         <div>
           <div className="h-1.5 overflow-hidden rounded-full bg-rust/15">
             <div className="h-full rounded-full bg-sea" style={{ width: `${pct}%` }} />

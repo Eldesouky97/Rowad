@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { adminGetPrograms, adminCreateProgram, adminUpdateProgram, adminDeleteProgram, ApiException } from '@/lib/api';
 import type { Program } from '@/lib/types';
 import { PlusIcon, EditIcon, TrashIcon } from '@/components/icons';
-import { PROGRAM_CATEGORIES, ART_THEMES, inputClass, labelClass, SectionCard, EmptyState, ErrorText, type Notify } from './shared';
+import { PROGRAM_CATEGORIES, ART_THEMES, inputClass, labelClass, SectionCard, EmptyState, ErrorText, PublisherNote, type Notify } from './shared';
 
 export default function ProgramsManager({ canEdit, showToast }: { canEdit: boolean; showToast: Notify }) {
   const [items, setItems] = useState<Program[]>([]);
@@ -32,6 +32,7 @@ export default function ProgramsManager({ canEdit, showToast }: { canEdit: boole
       description: String(form.get('description') || '').trim(),
       art_theme: String(form.get('art_theme') || 'art-1') as Program['art_theme'],
       order: Number(form.get('order') || 0),
+      author: String(form.get('author') || '').trim() || undefined,
     };
 
     setSubmitting(true);
@@ -98,12 +99,17 @@ export default function ProgramsManager({ canEdit, showToast }: { canEdit: boole
             <label className={labelClass}>الترتيب</label>
             <input name="order" type="number" min={0} defaultValue={editing?.order ?? 0} className={inputClass} />
           </div>
+          <div>
+            <label className={labelClass}>اسم الكاتب (اختياري — يظهر للجمهور)</label>
+            <input name="author" defaultValue={editing?.author ?? ''} placeholder="مثال: فريق البرامج" className={inputClass} />
+          </div>
           <ErrorText message={error} />
-          <div className="flex gap-3 sm:col-span-2">
+          <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
             <button type="submit" disabled={submitting} className="rounded-full bg-violet-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-60">
               {submitting ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'إضافة برنامج'}
             </button>
             <button type="button" onClick={closeForm} className="rounded-full border border-ink/15 px-6 py-2.5 text-sm font-bold hover:bg-white">إلغاء</button>
+            {editing && <PublisherNote item={editing} />}
           </div>
         </form>
       )}
@@ -118,6 +124,7 @@ export default function ProgramsManager({ canEdit, showToast }: { canEdit: boole
                 <th className="py-2.5 pl-4">العنوان</th>
                 <th className="py-2.5 pl-4">القطاع</th>
                 <th className="py-2.5 pl-4">الترتيب</th>
+                <th className="py-2.5 pl-4">نُشر بواسطة</th>
                 {canEdit && <th className="py-2.5"></th>}
               </tr>
             </thead>
@@ -127,6 +134,7 @@ export default function ProgramsManager({ canEdit, showToast }: { canEdit: boole
                   <td className="py-3 pl-4 font-bold">{p.title}</td>
                   <td className="py-3 pl-4 text-ink/60">{p.category}</td>
                   <td className="py-3 pl-4 text-ink/60">{p.order}</td>
+                  <td className="py-3 pl-4 text-ink/45"><PublisherNote item={p} /></td>
                   {canEdit && (
                     <td className="py-3">
                       <div className="flex justify-end gap-1.5">

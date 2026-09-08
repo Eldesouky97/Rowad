@@ -47,6 +47,9 @@
         "organizer":    { ".validate": "!newData.exists() || newData.isString()" },
         "art_theme":    { ".validate": "!newData.exists() || newData.val().matches(/^art-[1-4]$/)" },
         "is_published": { ".validate": "newData.isBoolean()" },
+        "author":          { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_uid":  { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_name": { ".validate": "!newData.exists() || newData.isString()" },
         "created_at":   { ".validate": true },
         "updated_at":   { ".validate": true }
       }
@@ -91,7 +94,9 @@
         "is_featured":   { ".validate": "!newData.exists() || newData.isBoolean()" },
         "art_theme":     { ".validate": "!newData.exists() || newData.val().matches(/^art-[1-4]$/)" },
         "is_published":  { ".validate": "newData.isBoolean()" },
-        "published_at":  { ".validate": true }
+        "published_at":  { ".validate": true },
+        "created_by_uid":  { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_name": { ".validate": "!newData.exists() || newData.isString()" }
       }
     },
 
@@ -105,7 +110,10 @@
         "description":  { ".validate": "newData.isString()" },
         "art_theme":    { ".validate": "!newData.exists() || newData.val().matches(/^art-[1-4]$/)" },
         "order":        { ".validate": "!newData.exists() || newData.isNumber()" },
-        "is_published": { ".validate": "newData.isBoolean()" }
+        "is_published": { ".validate": "newData.isBoolean()" },
+        "author":          { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_uid":  { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_name": { ".validate": "!newData.exists() || newData.isString()" }
       }
     },
 
@@ -122,8 +130,13 @@
         "projects_completed":    { ".validate": "!newData.exists() || newData.isNumber()" },
         "completion_percentage": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 100)" },
         "art_theme":             { ".validate": "!newData.exists() || newData.val().matches(/^art-[1-4]$/)" },
+        "storage_path":          { ".validate": "!newData.exists() || newData.isString()" },
+        "image_url":             { ".validate": "!newData.exists() || newData.isString()" },
         "order":                 { ".validate": "!newData.exists() || newData.isNumber()" },
-        "is_published":          { ".validate": "newData.isBoolean()" }
+        "is_published":          { ".validate": "newData.isBoolean()" },
+        "author":          { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_uid":  { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_name": { ".validate": "!newData.exists() || newData.isString()" }
       }
     },
 
@@ -139,7 +152,10 @@
         "storage_path": { ".validate": "!newData.exists() || newData.isString()" },
         "image_url":    { ".validate": "!newData.exists() || newData.isString()" },
         "order":        { ".validate": "!newData.exists() || newData.isNumber()" },
-        "is_published": { ".validate": "newData.isBoolean()" }
+        "is_published": { ".validate": "newData.isBoolean()" },
+        "author":          { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_uid":  { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_name": { ".validate": "!newData.exists() || newData.isString()" }
       }
     },
 
@@ -152,7 +168,9 @@
         "description":  { ".validate": "!newData.exists() || newData.isString()" },
         "order":        { ".validate": "!newData.exists() || newData.isNumber()" },
         "is_published": { ".validate": "newData.isBoolean()" },
-        "created_at":   { ".validate": true }
+        "created_at":   { ".validate": true },
+        "created_by_uid":  { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_name": { ".validate": "!newData.exists() || newData.isString()" }
       }
     },
 
@@ -169,7 +187,10 @@
         "storage_path": { ".validate": "!newData.exists() || newData.isString()" },
         "image_url":    { ".validate": "!newData.exists() || newData.isString()" },
         "order":        { ".validate": "!newData.exists() || newData.isNumber()" },
-        "is_published": { ".validate": "newData.isBoolean()" }
+        "is_published": { ".validate": "newData.isBoolean()" },
+        "author":          { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_uid":  { ".validate": "!newData.exists() || newData.isString()" },
+        "created_by_name": { ".validate": "!newData.exists() || newData.isString()" }
       }
     },
 

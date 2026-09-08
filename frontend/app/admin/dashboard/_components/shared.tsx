@@ -1,6 +1,6 @@
-import type { AdminUser } from '@/lib/types';
+import type { AdminUser, Publishable } from '@/lib/types';
 import { GOVERNORATES, COMMITTEES } from '@/lib/constants';
-import { SearchIcon } from '@/components/icons';
+import { SearchIcon, UsersIcon } from '@/components/icons';
 
 export const ARTICLE_CATEGORIES = ['أخبار الكيان', 'قصص نجاح', 'فعاليات', 'تنمية مجتمعية', 'مقالات رأي'];
 export const GOVS = [...GOVERNORATES, 'عام'];
@@ -119,6 +119,19 @@ export function StatCard({
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * سطر "نُشر بواسطة" — يظهر بلوحة التحكم بس (مش للجمهور إطلاقًا) لأي محتوى
+ * فيه created_by_name، عشان الأدمن يعرف مين نشر إيه.
+ */
+export function PublisherNote({ item, className = '' }: { item: Publishable; className?: string }) {
+  if (!item.created_by_name) return null;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[11px] text-ink/40 ${className}`}>
+      <UsersIcon className="h-3 w-3" /> نُشر بواسطة {item.created_by_name}
+    </span>
   );
 }
 

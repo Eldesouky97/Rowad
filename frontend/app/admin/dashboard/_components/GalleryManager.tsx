@@ -19,7 +19,7 @@ import {
   PlusIcon, EditIcon, TrashIcon, ImageIcon, CloseIcon,
   UploadIcon, CheckSquareIcon, LayersIcon, CheckIcon,
 } from '@/components/icons';
-import { ART_THEMES, inputClass, labelClass, SectionCard, Badge, EmptyState, ErrorText, type Notify } from './shared';
+import { ART_THEMES, inputClass, labelClass, SectionCard, Badge, EmptyState, ErrorText, PublisherNote, type Notify } from './shared';
 
 const ART_BG: Record<string, string> = {
   'art-1': 'from-sea to-[#0a4247]',
@@ -252,6 +252,7 @@ export default function GalleryManager({ canEdit, showToast }: { canEdit: boolea
                     <span className="mt-0.5 flex items-center gap-1 text-[11px] text-white/70">
                       <ImageIcon className="h-3 w-3" /> {albumImages.length} صورة
                     </span>
+                    {a.created_by_name && <p className="mt-0.5 truncate text-[10px] text-white/50">نُشر بواسطة {a.created_by_name}</p>}
                   </div>
 
                   {canEdit ? (
@@ -398,16 +399,21 @@ export default function GalleryManager({ canEdit, showToast }: { canEdit: boolea
               <label className={labelClass}>الترتيب</label>
               <input name="order" type="number" min={0} defaultValue={editing?.order ?? 0} className={inputClass} />
             </div>
+            <div>
+              <label className={labelClass}>اسم الكاتب/المصور (اختياري — يظهر للجمهور)</label>
+              <input name="author" defaultValue={editing?.author ?? ''} placeholder="مثال: أحمد المصور" className={inputClass} />
+            </div>
             <div className="sm:col-span-2">
               <label className={labelClass}>رفع صورة حقيقية (اختياري)</label>
               <input name="image" type="file" accept="image/*" className={inputClass} />
             </div>
             <ErrorText message={error} />
-            <div className="flex gap-3 sm:col-span-2">
+            <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
               <button type="submit" disabled={submitting} className="rounded-full bg-violet-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-60">
                 {submitting ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'إضافة صورة'}
               </button>
               <button type="button" onClick={closeForm} className="rounded-full border border-ink/15 px-6 py-2.5 text-sm font-bold hover:bg-white">إلغاء</button>
+              {editing && <PublisherNote item={editing} />}
             </div>
           </form>
         )}
@@ -431,6 +437,7 @@ export default function GalleryManager({ canEdit, showToast }: { canEdit: boolea
                   {g.album_id && albumTitleById.has(g.album_id) && (
                     <Badge tone="violet">{albumTitleById.get(g.album_id)}</Badge>
                   )}
+                  <PublisherNote item={g} className="mt-1 block" />
                 </div>
                 {canEdit && (
                   <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-2 opacity-0 transition group-hover:opacity-100">

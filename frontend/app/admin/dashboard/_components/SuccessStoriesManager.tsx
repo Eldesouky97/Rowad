@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { adminGetSuccessStories, adminCreateSuccessStory, adminUpdateSuccessStory, adminDeleteSuccessStory, ApiException } from '@/lib/api';
 import type { SuccessStory } from '@/lib/types';
 import { PlusIcon, EditIcon, TrashIcon, UsersIcon } from '@/components/icons';
-import { GOVS, inputClass, labelClass, SectionCard, EmptyState, ErrorText, type Notify } from './shared';
+import { GOVS, inputClass, labelClass, SectionCard, EmptyState, ErrorText, PublisherNote, type Notify } from './shared';
 
 export default function SuccessStoriesManager({ canEdit, showToast }: { canEdit: boolean; showToast: Notify }) {
   const [items, setItems] = useState<SuccessStory[]>([]);
@@ -92,16 +92,21 @@ export default function SuccessStoriesManager({ canEdit, showToast }: { canEdit:
             <label className={labelClass}>نص الاقتباس</label>
             <textarea name="quote" required rows={3} defaultValue={editing?.quote} className={inputClass} />
           </div>
+          <div>
+            <label className={labelClass}>اسم الكاتب (اختياري — يظهر للجمهور)</label>
+            <input name="author" defaultValue={editing?.author ?? ''} placeholder="مثال: فريق الإعلام" className={inputClass} />
+          </div>
           <div className="sm:col-span-2">
             <label className={labelClass}>صورة شخصية (اختياري)</label>
             <input name="image" type="file" accept="image/*" className={inputClass} />
           </div>
           <ErrorText message={error} />
-          <div className="flex gap-3 sm:col-span-2">
+          <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
             <button type="submit" disabled={submitting} className="rounded-full bg-violet-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-60">
               {submitting ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'إضافة قصة نجاح'}
             </button>
             <button type="button" onClick={closeForm} className="rounded-full border border-ink/15 px-6 py-2.5 text-sm font-bold hover:bg-white">إلغاء</button>
+            {editing && <PublisherNote item={editing} />}
           </div>
         </form>
       )}
@@ -128,6 +133,7 @@ export default function SuccessStoriesManager({ canEdit, showToast }: { canEdit:
               </div>
               <p className="flex-1 text-sm italic text-ink/70">&quot;{s.quote}&quot;</p>
               {s.governorate && <p className="mt-3 text-xs font-bold text-ink/45">{s.governorate}</p>}
+              <PublisherNote item={s} className="mt-2" />
               {canEdit && (
                 <div className="absolute left-3 top-3 flex gap-1 opacity-0 transition group-hover:opacity-100">
                   <button onClick={() => openEdit(s)} className="rounded-lg bg-white p-1.5 text-ink/60 shadow hover:text-ink" aria-label="تعديل"><EditIcon className="h-3.5 w-3.5" /></button>

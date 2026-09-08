@@ -21,7 +21,7 @@ import { getMyBookedEventIds } from '@/lib/bookings';
 import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum } from '@/lib/types';
 import {
   CalendarIcon, ArrowIcon, HandsIcon, BookIcon, CompassIcon,
-  LeafIcon, MegaphoneIcon, HeartIcon, StarIcon, ImageIcon, LayersIcon, ZoomIcon,
+  LeafIcon, MegaphoneIcon, HeartIcon, StarIcon, ImageIcon, LayersIcon, ZoomIcon, UsersIcon, PinIcon,
 } from '@/components/icons';
 
 const ART_BG: Record<string, string> = {
@@ -337,20 +337,44 @@ export default function HomePage() {
           </Reveal>
           <Reveal className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {stories.map((s) => (
-              <div key={s.id} className="flex flex-col rounded-[18px] border border-gold/25 bg-white p-7 shadow-card">
-                <div className="mb-3 flex gap-1 text-gold">
-                  {Array.from({ length: 5 }).map((_, i) => <StarIcon key={i} className="h-4 w-4" />)}
-                </div>
-                <p className="flex-1 text-sm italic opacity-85">&quot;{s.quote}&quot;</p>
-                <div className="mt-5 flex items-center gap-3 border-t border-gold/15 pt-4">
-                  {s.image_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={s.image_url} alt={s.name} className="h-11 w-11 shrink-0 rounded-full object-cover" />
-                  )}
-                  <div>
-                    <b className="block font-utility text-sm">{s.name}</b>
-                    <span className="text-xs opacity-65">{s.role_title}</span>
+              <div
+                key={s.id}
+                className="group flex flex-col overflow-hidden rounded-[18px] border border-gold/25 bg-white shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
+              >
+                {s.image_url ? (
+                  <div className="relative h-40 w-full overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={s.image_url}
+                      alt={s.name}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-night/80 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-4 text-cream">
+                      <b className="block font-utility text-sm">{s.name}</b>
+                      <span className="text-xs opacity-80">{s.role_title}</span>
+                    </div>
                   </div>
+                ) : (
+                  <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-gold/20 to-rust/10">
+                    <UsersIcon className="h-10 w-10 text-rust/50" />
+                  </div>
+                )}
+                <div className="flex flex-1 flex-col p-6">
+                  <div className="mb-3 flex gap-1 text-gold">
+                    {Array.from({ length: 5 }).map((_, i) => <StarIcon key={i} className="h-4 w-4" />)}
+                  </div>
+                  <p className="flex-1 text-sm italic opacity-85">&quot;{s.quote}&quot;</p>
+                  {!s.image_url && (
+                    <div className="mt-4 border-t border-gold/15 pt-3">
+                      <b className="block font-utility text-sm">{s.name}</b>
+                      <span className="text-xs opacity-65">{s.role_title}</span>
+                    </div>
+                  )}
+                  {s.author && (
+                    <p className="mt-3 text-[11px] font-bold text-rust/70">بقلم: {s.author}</p>
+                  )}
                 </div>
               </div>
             ))}
@@ -434,26 +458,61 @@ export default function HomePage() {
           </Reveal>
           <Reveal className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {governorates.map((g) => (
-              <div key={g.id} className="rounded-[18px] border border-gold/25 bg-white p-6 shadow-card">
-                <h3 className="font-display text-lg">{g.name}</h3>
-                <p className="mt-1 text-xs opacity-60">{g.tagline}</p>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <b className="block font-utility text-xl text-rust">{g.projects_completed}</b>
-                    <span className="text-xs opacity-60">المشاريع المنجزة</span>
+              <div
+                key={g.id}
+                className="group overflow-hidden rounded-[18px] border border-gold/25 bg-white shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
+              >
+                {g.image_url ? (
+                  <div className="relative h-36 w-full overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={g.image_url}
+                      alt={g.name}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-night/85 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-4 text-cream">
+                      <h3 className="font-display text-lg">{g.name}</h3>
+                      <p className="text-xs opacity-75">{g.tagline}</p>
+                    </div>
                   </div>
-                  <div>
-                    <b className="block font-utility text-xl text-rust">{g.population}</b>
-                    <span className="text-xs opacity-60">السكان</span>
+                ) : (
+                  <div className="flex h-36 w-full flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-rust/15 to-gold/10 text-rust/60">
+                    <PinIcon className="h-8 w-8" />
                   </div>
-                </div>
-                <div className="mt-4">
-                  <div className="h-1.5 overflow-hidden rounded-full bg-rust/15">
-                    <div className="h-full rounded-full bg-rust" style={{ width: `${g.completion_percentage}%` }} />
+                )}
+                <div className="p-6">
+                  {!g.image_url && (
+                    <>
+                      <h3 className="font-display text-lg">{g.name}</h3>
+                      <p className="mt-1 text-xs opacity-60">{g.tagline}</p>
+                    </>
+                  )}
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <b className="block font-utility text-xl text-rust">{g.projects_completed}</b>
+                      <span className="text-xs opacity-60">المشاريع المنجزة</span>
+                    </div>
+                    <div>
+                      <b className="block font-utility text-xl text-rust">{g.population}</b>
+                      <span className="text-xs opacity-60">السكان</span>
+                    </div>
                   </div>
-                  <span className="mt-1.5 block font-utility text-[11px] opacity-60">
-                    نسبة الإنجاز {g.completion_percentage}٪
-                  </span>
+                  <div className="mt-4">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-rust/15">
+                      <div
+                        className="h-full rounded-full bg-rust transition-[width] duration-700"
+                        style={{ width: `${g.completion_percentage}%` }}
+                      />
+                    </div>
+                    <span className="mt-1.5 block font-utility text-[11px] opacity-60">
+                      نسبة الإنجاز {g.completion_percentage}٪
+                    </span>
+                  </div>
+                  {g.author && (
+                    <p className="mt-3 text-[11px] font-bold text-rust/70">بقلم: {g.author}</p>
+                  )}
                 </div>
               </div>
             ))}

@@ -371,6 +371,23 @@ export const adminMe = async (): Promise<AdminUser | null> => {
   return { id: user.uid, ...snap.val() } as AdminUser;
 };
 
+// بيسجّل هوية الأدمن اللي بينشئ المحتوى (created_by_uid/name) — يُستخدم في كل
+// دوال "إنشاء" للمحتوى القابل للنشر. المعلومة دي بتظهر بلوحة التحكم بس (مين
+// نشر إيه) ومنفصلة تمامًا عن حقل "author" الاختياري اللي الأدمن بيكتبه بنفسه
+// ليظهر للجمهور (زي "بقلم فلان") — ممكن يكونوا شخصين مختلفين تمامًا.
+async function getPublisherInfo(): Promise<{ created_by_uid: string; created_by_name: string }> {
+  const user = auth.currentUser;
+  if (!user) return { created_by_uid: '', created_by_name: 'غير معروف' };
+  let name = user.displayName || user.email || 'أدمن';
+  try {
+    const snap = await get(ref(db, `admins/${user.uid}/name`));
+    if (snap.exists()) name = snap.val();
+  } catch {
+    // تعذّر قراءة الاسم من /admins — نكتفي بالقيمة الافتراضية أعلاه
+  }
+  return { created_by_uid: user.uid, created_by_name: name };
+}
+
 /* ============ Admin: Events (full CRUD) ============ */
 export const adminGetEvents = async (): Promise<EventItem[]> => {
   const snap = await get(ref(db, 'events'));
@@ -382,6 +399,7 @@ export const adminGetEvents = async (): Promise<EventItem[]> => {
 export const adminCreateEvent = async (payload: EventItemPayload): Promise<EventItem> => {
   const data = {
     ...payload,
+    ...(await getPublisherInfo()),
     slug: makeSlug(payload.title),
     mode: payload.mode ?? 'حضوري',
     art_theme: payload.art_theme ?? 'art-1',
@@ -435,6 +453,7 @@ export const adminGetArticles = async (): Promise<Article[]> => {
 export const adminCreateArticle = async (payload: ArticleItemPayload): Promise<Article> => {
   const data = {
     ...payload,
+    ...(await getPublisherInfo()),
     slug: makeSlug(payload.title),
     governorate: payload.governorate ?? 'عام',
     tags: payload.tags ?? null,
@@ -478,7 +497,7 @@ export const adminGetPrograms = async (): Promise<Program[]> => {
 };
 
 export const adminCreateProgram = async (payload: Partial<Program>): Promise<Program> => {
-  const data = { ...payload, art_theme: payload.art_theme ?? 'art-1', order: payload.order ?? 0, is_published: payload.is_published ?? true };
+  const data = { ...payload, ...(await getPublisherInfo()), art_theme: payload.art_theme ?? 'art-1', order: payload.order ?? 0, is_published: payload.is_published ?? true };
   try {
     const newRef = push(ref(db, 'programs'));
     await set(newRef, data);
@@ -510,14 +529,29 @@ export const adminGetGovernorates = async (): Promise<Governorate[]> => {
   return objectToArray<Governorate>(snap.val()).sort((a, b) => a.order - b.order);
 };
 
-export const adminCreateGovernorate = async (payload: Partial<Governorate>): Promise<Governorate> => {
-  const data = {
-    ...payload,
-    slug: makeSlug(payload.name ?? ''),
-    art_theme: payload.art_theme ?? 'art-1',
-    order: payload.order ?? 0,
-    is_published: payload.is_published ?? true,
+// FormData بدل كائن عادي عشان تدعم رفع صورة اختيارية للمحافظة (زي قصص النجاح)
+export const adminCreateGovernorate = async (formData: FormData): Promise<Governorate> => {
+  const file = formData.get('image') as File | null;
+  const data: Record<string, unknown> = {
+    name: formData.get('name'),
+    tagline: formData.get('tagline'),
+    population: formData.get('population'),
+    projects_completed: Number(formData.get('projects_completed') || 0),
+    completion_percentage: Number(formData.get('completion_percentage') || 0),
+    art_theme: formData.get('art_theme') || 'art-1',
+    order: Number(formData.get('order') || 0),
+    is_published: formData.get('is_published') !== 'false',
+    author: formData.get('author') || null,
+    slug: makeSlug(String(formData.get('name') || '')),
+    storage_path: null,
+    image_url: null,
+    ...(await getPublisherInfo()),
   };
+  if (file && file.size > 0) {
+    const uploaded = await uploadImageToR2(file);
+    data.storage_path = uploaded.storage_path;
+    data.image_url = uploaded.image_url;
+  }
   try {
     const newRef = push(ref(db, 'governorates'));
     await set(newRef, data);
@@ -527,9 +561,28 @@ export const adminCreateGovernorate = async (payload: Partial<Governorate>): Pro
   }
 };
 
-export const adminUpdateGovernorate = async (id: string, payload: Partial<Governorate>): Promise<void> => {
+export const adminUpdateGovernorate = async (id: string, formData: FormData): Promise<void> => {
+  const file = formData.get('image') as File | null;
+  const data: Record<string, unknown> = {
+    name: formData.get('name'),
+    tagline: formData.get('tagline'),
+    population: formData.get('population'),
+    projects_completed: Number(formData.get('projects_completed') || 0),
+    completion_percentage: Number(formData.get('completion_percentage') || 0),
+    art_theme: formData.get('art_theme') || 'art-1',
+    order: Number(formData.get('order') || 0),
+    is_published: formData.get('is_published') !== 'false',
+    author: formData.get('author') || null,
+  };
+  if (file && file.size > 0) {
+    const existingSnap = await get(ref(db, `governorates/${id}/storage_path`));
+    const uploaded = await uploadImageToR2(file);
+    data.storage_path = uploaded.storage_path;
+    data.image_url = uploaded.image_url;
+    if (existingSnap.exists()) await deleteImageFromR2(existingSnap.val());
+  }
   try {
-    await update(ref(db, `governorates/${id}`), payload);
+    await update(ref(db, `governorates/${id}`), data);
   } catch (err) {
     throw translateFirebaseError(err);
   }
@@ -558,8 +611,10 @@ export const adminCreateSuccessStory = async (formData: FormData): Promise<Succe
     quote: formData.get('quote'),
     order: Number(formData.get('order') || 0),
     is_published: formData.get('is_published') !== 'false',
+    author: formData.get('author') || null,
     storage_path: null,
     image_url: null,
+    ...(await getPublisherInfo()),
   };
   if (file && file.size > 0) {
     const uploaded = await uploadImageToR2(file);
@@ -584,6 +639,7 @@ export const adminUpdateSuccessStory = async (id: string, formData: FormData): P
     quote: formData.get('quote'),
     order: Number(formData.get('order') || 0),
     is_published: formData.get('is_published') !== 'false',
+    author: formData.get('author') || null,
   };
   if (file && file.size > 0) {
     const existingSnap = await get(ref(db, `success_stories/${id}/storage_path`));
@@ -639,8 +695,10 @@ export const adminCreateGalleryImage = async (formData: FormData): Promise<Galle
     art_theme: formData.get('art_theme') || 'art-1',
     order: Number(formData.get('order') || 0),
     is_published: formData.get('is_published') !== 'false',
+    author: formData.get('author') || null,
     storage_path: null,
     image_url: null,
+    ...(await getPublisherInfo()),
   };
   if (file && file.size > 0) {
     const uploaded = await uploadImageToR2(file);
@@ -677,6 +735,7 @@ export const adminUpdateGalleryImage = async (id: string, formData: FormData): P
     art_theme: formData.get('art_theme') || 'art-1',
     order: Number(formData.get('order') || 0),
     is_published: formData.get('is_published') !== 'false',
+    author: formData.get('author') || null,
   };
   if (file && file.size > 0) {
     const existingSnap = await get(ref(db, `gallery_images/${id}/storage_path`));
@@ -710,6 +769,7 @@ export const adminCreateGalleryImagesBulk = async (
   onProgress?: (done: number, total: number) => void
 ): Promise<GalleryImage[]> => {
   const results: GalleryImage[] = [];
+  const publisher = await getPublisherInfo();
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     try {
@@ -723,6 +783,7 @@ export const adminCreateGalleryImagesBulk = async (
         is_published: meta.is_published,
         storage_path: uploaded.storage_path,
         image_url: uploaded.image_url,
+        ...publisher,
       };
       const newRef = push(ref(db, 'gallery_images'));
       await set(newRef, data);
@@ -749,6 +810,7 @@ export const adminCreateAlbum = async (payload: { title: string; description?: s
     order: payload.order ?? 0,
     is_published: payload.is_published ?? true,
     created_at: new Date().toISOString(),
+    ...(await getPublisherInfo()),
   };
   try {
     const newRef = push(ref(db, 'gallery_albums'));

@@ -6,7 +6,7 @@ import type { Article } from '@/lib/types';
 import { PlusIcon, EditIcon, TrashIcon } from '@/components/icons';
 import {
   ARTICLE_CATEGORIES, GOVS, inputClass, labelClass,
-  SectionCard, Badge, EmptyState, ErrorText, type Notify,
+  SectionCard, Badge, EmptyState, ErrorText, PublisherNote, type Notify,
 } from './shared';
 
 export default function ArticlesManager({ canEdit, showToast }: { canEdit: boolean; showToast: Notify }) {
@@ -151,6 +151,7 @@ export default function ArticlesManager({ canEdit, showToast }: { canEdit: boole
                 <th className="py-2.5 pl-4">العنوان</th>
                 <th className="py-2.5 pl-4">التصنيف</th>
                 <th className="py-2.5 pl-4">الكاتب</th>
+                <th className="py-2.5 pl-4">نُشر بواسطة</th>
                 <th className="py-2.5 pl-4">الحالة</th>
                 {canEdit && <th className="py-2.5"></th>}
               </tr>
@@ -161,6 +162,7 @@ export default function ArticlesManager({ canEdit, showToast }: { canEdit: boole
                   <td className="py-3 pl-4 font-bold">{a.title}{a.is_featured && ' ⭐'}</td>
                   <td className="py-3 pl-4 text-ink/60">{a.category}</td>
                   <td className="py-3 pl-4 text-ink/60">{a.author}</td>
+                  <td className="py-3 pl-4 text-ink/45"><PublisherNote item={a} /></td>
                   <td className="py-3 pl-4"><Badge tone={a.is_published ? 'success' : 'neutral'}>{a.is_published ? 'منشور' : 'غير منشور'}</Badge></td>
                   {canEdit && (
                     <td className="py-3">
