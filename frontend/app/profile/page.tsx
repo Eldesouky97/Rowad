@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   visitorSignOut,
@@ -11,6 +11,7 @@ import {
 } from '@/lib/api';
 import { useVisitorProfile } from '@/lib/useVisitorProfile';
 import { GOVERNORATES, EDUCATION_LEVELS, COMMITTEES } from '@/lib/constants';
+import { getAgeFromNationalId } from '@/lib/nationalId';
 import type { SiteUser } from '@/lib/types';
 import { useToast } from '@/components/Toast';
 import UserAvatar from '@/components/UserAvatar';
@@ -219,15 +220,17 @@ function BasicInfoCard({
 function PersonalInfoCard({ profile, onSaved }: { profile: SiteUser | null; onSaved: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nationalId, setNationalId] = useState(profile?.national_id || '');
+
+  const computedAge = useMemo(() => getAgeFromNationalId(nationalId), [nationalId]);
+  const nationalIdComplete = nationalId.length === 14;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const form = new FormData(e.currentTarget);
-    const nationalId = String(form.get('national_id') || '').trim();
     const governorate = String(form.get('governorate') || '');
     const address = String(form.get('address') || '').trim();
-    const ageRaw = String(form.get('age') || '');
     const education = String(form.get('education') || '');
     const committee = String(form.get('committee') || '');
 
@@ -235,9 +238,8 @@ function PersonalInfoCard({ profile, onSaved }: { profile: SiteUser | null; onSa
       setError('الرقم القومي يجب أن يتكوّن من ١٤ رقمًا');
       return;
     }
-    const age = ageRaw ? Number(ageRaw) : undefined;
-    if (age !== undefined && (age < 10 || age > 100)) {
-      setError('من فضلك أدخل سنًّا صحيحًا');
+    if (nationalIdComplete && computedAge === null) {
+      setError('الرقم القومي غير صحيح — تعذّر استخراج تاريخ الميلاد منه');
       return;
     }
 
@@ -247,7 +249,7 @@ function PersonalInfoCard({ profile, onSaved }: { profile: SiteUser | null; onSa
         national_id: nationalId,
         governorate,
         address,
-        ...(age !== undefined ? { age } : {}),
+        ...(computedAge !== null ? { age: computedAge } : {}),
         education,
         committee,
       });
@@ -265,11 +267,27 @@ function PersonalInfoCard({ profile, onSaved }: { profile: SiteUser | null; onSa
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>الرقم القومي</label>
-          <input name="national_id" inputMode="numeric" maxLength={14} defaultValue={profile?.national_id || ''} className={inputClass} />
+          <input
+            name="national_id"
+            inputMode="numeric"
+            maxLength={14}
+            value={nationalId}
+            onChange={(e) => setNationalId(e.target.value.replace(/\D/g, '').slice(0, 14))}
+            className={inputClass}
+          />
+          {nationalIdComplete && computedAge === null && (
+            <p className="mt-1 text-xs text-[#e08a6b]">الرقم القومي غير صحيح</p>
+          )}
         </div>
         <div>
-          <label className={labelClass}>السن</label>
-          <input name="age" type="number" min={10} max={100} defaultValue={profile?.age ?? ''} className={inputClass} />
+          <label className={labelClass}>السن (يُحسب تلقائيًا من الرقم القومي)</label>
+          <input
+            readOnly
+            disabled
+            value={computedAge !== null ? `${computedAge} سنة` : profile?.age ? `${profile.age} سنة` : ''}
+            placeholder="أدخل رقمًا قوميًا صحيحًا"
+            className={`${inputClass} cursor-not-allowed bg-sand/60 text-ink/60`}
+          />
         </div>
         <div>
           <label className={labelClass}>المحافظة</label>

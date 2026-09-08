@@ -1,10 +1,11 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { updateVisitorProfile, visitorSignOut, ApiException } from '@/lib/api';
 import { useVisitorProfile } from '@/lib/useVisitorProfile';
 import { GOVERNORATES, EDUCATION_LEVELS, COMMITTEES } from '@/lib/constants';
+import { getAgeFromNationalId } from '@/lib/nationalId';
 import { CompassIcon, LogoutIcon } from './icons';
 
 const inputClass =
@@ -23,6 +24,10 @@ export default function ProfileCompletionGate() {
   const { authUser, profile, profileLoaded, loading } = useVisitorProfile();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nationalId, setNationalId] = useState('');
+
+  const computedAge = useMemo(() => getAgeFromNationalId(nationalId), [nationalId]);
+  const nationalIdComplete = nationalId.length === 14;
 
   const isAdminRoute = pathname?.startsWith('/admin');
   const shouldShow = !loading && !!authUser && profileLoaded && !profile?.profile_completed && !isAdminRoute;
@@ -34,20 +39,18 @@ export default function ProfileCompletionGate() {
     setError(null);
     const form = new FormData(e.currentTarget);
     const name = String(form.get('name') || '').trim();
-    const nationalId = String(form.get('national_id') || '').trim();
     const governorate = String(form.get('governorate') || '');
     const address = String(form.get('address') || '').trim();
-    const ageRaw = String(form.get('age') || '');
     const education = String(form.get('education') || '');
     const committee = String(form.get('committee') || '');
 
     if (name.length < 2) return setError('من فضلك أدخل اسمًا صحيحًا');
     if (!/^\d{14}$/.test(nationalId)) return setError('الرقم القومي يجب أن يتكوّن من ١٤ رقمًا');
+    if (computedAge === null) return setError('الرقم القومي غير صحيح — تعذّر استخراج تاريخ الميلاد منه');
     if (!governorate) return setError('من فضلك اختر المحافظة');
     if (address.length < 3) return setError('من فضلك أدخل عنوانًا صحيحًا');
-    const age = Number(ageRaw);
-    if (!age || age < 10 || age > 100) return setError('من فضلك أدخل سنًّا صحيحًا');
     if (!education) return setError('من فضلك اختر المؤهل التعليمي');
+    const age = computedAge;
 
     setSubmitting(true);
     try {
@@ -86,11 +89,29 @@ export default function ProfileCompletionGate() {
           </div>
           <div>
             <label className={labelClass}>الرقم القومي</label>
-            <input name="national_id" inputMode="numeric" maxLength={14} required placeholder="١٤ رقمًا" className={inputClass} />
+            <input
+              name="national_id"
+              inputMode="numeric"
+              maxLength={14}
+              required
+              placeholder="١٤ رقمًا"
+              value={nationalId}
+              onChange={(e) => setNationalId(e.target.value.replace(/\D/g, '').slice(0, 14))}
+              className={inputClass}
+            />
+            {nationalIdComplete && computedAge === null && (
+              <p className="mt-1 text-xs text-[#e08a6b]">الرقم القومي غير صحيح</p>
+            )}
           </div>
           <div>
-            <label className={labelClass}>السن</label>
-            <input name="age" type="number" min={10} max={100} required className={inputClass} />
+            <label className={labelClass}>السن (يُحسب تلقائيًا)</label>
+            <input
+              readOnly
+              disabled
+              value={computedAge !== null ? `${computedAge} سنة` : ''}
+              placeholder="هيظهر بعد إدخال الرقم القومي"
+              className={`${inputClass} cursor-not-allowed bg-sand/60 text-ink/60`}
+            />
           </div>
           <div>
             <label className={labelClass}>المحافظة</label>
