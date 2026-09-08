@@ -32,6 +32,9 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
 
+  // "تواصل معنا" مطلوب يختفي من شريط التنقّل بعد تسجيل الدخول
+  const visibleLinks = authUser ? LINKS.filter((link) => link.href !== '/contact') : LINKS;
+
   async function handleSignOut() {
     await visitorSignOut();
     setOpen(false);
@@ -59,11 +62,11 @@ export default function Header() {
         </Link>
 
         <nav
-          className={`fixed inset-x-0 top-[76px] z-[100] flex h-[calc(100vh-76px)] flex-col items-stretch gap-0 overflow-y-auto bg-night px-5 py-4 transition-transform duration-300 xl:static xl:h-auto xl:flex-row xl:items-center xl:gap-0.5 xl:bg-transparent xl:p-0 xl:transition-none ${
+          className={`fixed inset-x-0 top-[76px] z-[100] flex h-[calc(100vh-76px)] flex-col items-stretch gap-0 overflow-y-auto bg-night px-5 py-4 transition-transform duration-300 xl:static xl:h-auto xl:flex-row xl:items-center xl:gap-0.5 xl:overflow-visible xl:bg-transparent xl:p-0 xl:transition-none ${
             open ? 'translate-x-0' : 'translate-x-full xl:translate-x-0'
           }`}
         >
-          {LINKS.map((link) => {
+          {visibleLinks.map((link) => {
             const active = pathname === link.href;
             return (
               <Link
