@@ -31,7 +31,6 @@ import {
 import { auth, db, getSecondaryAuth } from './firebase';
 import { objectToArray, restGet, makeSlug, makeConfirmationCode, computeEventFields, ApiException } from './firebaseHelpers';
 import type {
-  ArticleItemPayload,
   Article,
   EventItem,
   EventItemPayload,
@@ -555,19 +554,32 @@ export const adminGetArticles = async (): Promise<Article[]> => {
   );
 };
 
-export const adminCreateArticle = async (payload: ArticleItemPayload): Promise<Article> => {
-  const data = {
-    ...payload,
-    ...(await buildPublishFields(payload.is_published ?? true)),
-    slug: makeSlug(payload.title),
-    governorate: payload.governorate ?? 'عام',
-    tags: payload.tags ?? null,
-    read_minutes: payload.read_minutes ?? 5,
-    is_featured: payload.is_featured ?? false,
+export const adminCreateArticle = async (formData: FormData): Promise<Article> => {
+  const file = formData.get('image') as File | null;
+  if (!file || file.size === 0) {
+    throw new ApiException('صورة المقال مطلوبة', 422, { image: ['صورة المقال مطلوبة'] });
+  }
+  const title = String(formData.get('title') || '');
+  const tagsRaw = String(formData.get('tags') || '').trim();
+  const uploaded = await uploadImageToR2(file);
+  const data: Record<string, unknown> = {
+    title,
+    slug: makeSlug(title),
+    category: formData.get('category'),
+    governorate: formData.get('governorate') || 'عام',
+    author: formData.get('author'),
+    excerpt: formData.get('excerpt'),
+    content: formData.get('content'),
+    tags: tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : null,
+    read_minutes: Number(formData.get('read_minutes') || 5),
+    is_featured: formData.get('is_featured') === 'on',
     art_theme: 'art-1' as const,
+    storage_path: uploaded.storage_path,
+    image_url: uploaded.image_url,
     views: 0,
     likes: 0,
     published_at: new Date().toISOString(),
+    ...(await buildPublishFields(formData.get('is_published') !== 'false')),
   };
   try {
     const newRef = push(ref(db, 'articles'));
@@ -578,10 +590,30 @@ export const adminCreateArticle = async (payload: ArticleItemPayload): Promise<A
   }
 };
 
-export const adminUpdateArticle = async (id: string, payload: Partial<ArticleItemPayload>): Promise<void> => {
+export const adminUpdateArticle = async (id: string, formData: FormData): Promise<void> => {
+  const file = formData.get('image') as File | null;
+  const tagsRaw = String(formData.get('tags') || '').trim();
+  const data: Record<string, unknown> = {
+    title: formData.get('title'),
+    category: formData.get('category'),
+    governorate: formData.get('governorate') || 'عام',
+    author: formData.get('author'),
+    excerpt: formData.get('excerpt'),
+    content: formData.get('content'),
+    tags: tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : null,
+    read_minutes: Number(formData.get('read_minutes') || 5),
+    is_featured: formData.get('is_featured') === 'on',
+    ...(await buildPublishFields(formData.get('is_published') !== 'false')),
+  };
+  if (file && file.size > 0) {
+    const existingSnap = await get(ref(db, `articles/${id}/storage_path`));
+    const uploaded = await uploadImageToR2(file);
+    data.storage_path = uploaded.storage_path;
+    data.image_url = uploaded.image_url;
+    if (existingSnap.exists()) await deleteImageFromR2(existingSnap.val());
+  }
   try {
-    const publishFields = await buildPublishFields(payload.is_published ?? true);
-    await update(ref(db, `articles/${id}`), { ...payload, ...publishFields });
+    await update(ref(db, `articles/${id}`), data);
   } catch (err) {
     throw translateFirebaseError(err);
   }

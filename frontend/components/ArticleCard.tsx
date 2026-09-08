@@ -21,9 +21,21 @@ export default function ArticleCard({ article }: { article: Article }) {
       href={`/news/${article.slug}`}
       className="group flex flex-col overflow-hidden rounded-[18px] border border-gold/25 bg-cream shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
     >
-      <div className={`flex h-[132px] items-center justify-center overflow-hidden text-cream/85 ${ART_BG[article.art_theme]}`}>
-        <BookIcon className="h-11 w-11 opacity-90 transition-transform duration-500 group-hover:scale-110" />
-      </div>
+      {article.image_url ? (
+        <div className="h-[132px] w-full overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={article.image_url}
+            alt={article.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+        </div>
+      ) : (
+        <div className={`flex h-[132px] items-center justify-center overflow-hidden text-cream/85 ${ART_BG[article.art_theme]}`}>
+          <BookIcon className="h-11 w-11 opacity-90 transition-transform duration-500 group-hover:scale-110" />
+        </div>
+      )}
       <div className="flex flex-1 flex-col gap-3 p-6">
         <div className="flex items-center justify-between gap-2">
           <span className="font-utility text-[11px] font-bold text-rust">{article.category}</span>

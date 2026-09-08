@@ -55,6 +55,13 @@ export default async function ArticlePage({ params }: { params: { slug: string }
           <span className="flex items-center gap-1.5"><BookIcon className="h-4 w-4" /> {article.read_minutes} دقائق قراءة</span>
         </div>
 
+        {article.image_url && (
+          <div className="mb-8 overflow-hidden rounded-[18px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={article.image_url} alt={article.title} className="h-auto max-h-[420px] w-full object-cover" />
+          </div>
+        )}
+
         <ArticleEngagement
           articleId={article.id}
           initialViews={article.views ?? 0}

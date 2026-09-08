@@ -80,21 +80,10 @@ export interface Article extends Publishable {
   likes: number;
   is_featured: boolean;
   art_theme: 'art-1' | 'art-2' | 'art-3' | 'art-4';
+  storage_path?: string | null;
+  image_url?: string | null;
   published_at: string;
   is_published: boolean;
-}
-
-export interface ArticleItemPayload {
-  title: string;
-  category: string;
-  governorate?: string;
-  author: string;
-  excerpt: string;
-  content: string;
-  tags?: string[];
-  read_minutes?: number;
-  is_featured?: boolean;
-  is_published?: boolean;
 }
 
 export interface Program extends Publishable {

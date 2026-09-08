@@ -3,12 +3,19 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { adminGetArticles, adminCreateArticle, adminUpdateArticle, adminDeleteArticle, ApiException } from '@/lib/api';
 import type { Article } from '@/lib/types';
-import { PlusIcon, EditIcon, TrashIcon } from '@/components/icons';
+import { PlusIcon, EditIcon, TrashIcon, BookIcon } from '@/components/icons';
 import RichTextEditor from '@/components/RichTextEditor';
 import {
   ARTICLE_CATEGORIES, GOVS, inputClass, labelClass,
   SectionCard, Badge, EmptyState, ErrorText, PublisherNote, PendingBadge, EditorReviewNotice, publishToast, type Notify,
 } from './shared';
+
+const ART_BG: Record<string, string> = {
+  'art-1': 'from-sea to-[#0a4247]',
+  'art-2': 'from-rust to-[#7a3620]',
+  'art-3': 'from-gold to-[#a9782c]',
+  'art-4': 'from-night-3 to-night',
+};
 
 export default function ArticlesManager({
   canEdit,
@@ -38,20 +45,6 @@ export default function ArticlesManager({
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const form = new FormData(e.currentTarget);
-    const tagsRaw = String(form.get('tags') || '').trim();
-    const payload: Record<string, unknown> = {
-      title: String(form.get('title') || '').trim(),
-      category: String(form.get('category') || ARTICLE_CATEGORIES[0]),
-      governorate: String(form.get('governorate') || 'عام'),
-      author: String(form.get('author') || '').trim(),
-      excerpt: String(form.get('excerpt') || '').trim(),
-      content,
-      tags: tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : [],
-      read_minutes: Number(form.get('read_minutes') || 5),
-      is_featured: form.get('is_featured') === 'on',
-    };
-    if (editing) payload.is_published = form.get('is_published') === 'on';
 
     const contentText = content.replace(/<[^>]+>/g, '').trim();
     if (!contentText) {
@@ -59,13 +52,22 @@ export default function ArticlesManager({
       return;
     }
 
+    const formData = new FormData(e.currentTarget);
+    formData.set('content', content);
+    const imageEntry = formData.get('image');
+    if (imageEntry instanceof File && imageEntry.size === 0) formData.delete('image');
+    if (!editing && !formData.get('image')) {
+      setError('صورة المقال مطلوبة');
+      return;
+    }
+
     setSubmitting(true);
     try {
       if (editing) {
-        await adminUpdateArticle(editing.id, payload);
+        await adminUpdateArticle(editing.id, formData);
         showToast(publishToast(isSuperAdmin, 'تحديث', 'المقال'));
       } else {
-        await adminCreateArticle(payload as never);
+        await adminCreateArticle(formData);
         showToast(publishToast(isSuperAdmin, 'إضافة', 'المقال'));
       }
       closeForm();
@@ -129,6 +131,16 @@ export default function ArticlesManager({
             <label className={labelClass}>الوسوم (مفصولة بفاصلة)</label>
             <input name="tags" placeholder="تمكين, سيناء" defaultValue={editing?.tags?.join(', ') ?? ''} className={inputClass} />
           </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass}>صورة المقال {!editing && <span className="text-rust">(مطلوبة)</span>}</label>
+            <div className="flex items-center gap-4">
+              {editing?.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={editing.image_url} alt={editing.title} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+              )}
+              <input name="image" type="file" accept="image/*" required={!editing} className={inputClass} />
+            </div>
+          </div>
           <div className="flex items-center gap-6 self-end pb-2.5">
             <label className="flex items-center gap-2 text-sm font-bold text-ink/70">
               <input type="checkbox" name="is_featured" defaultChecked={editing?.is_featured} /> مقال مميّز
@@ -162,47 +174,44 @@ export default function ArticlesManager({
       {items.length === 0 ? (
         <EmptyState message="لا توجد مقالات بعد." />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-ink/10 text-right text-xs font-bold text-ink/45">
-                <th className="py-2.5 pl-4">العنوان</th>
-                <th className="py-2.5 pl-4">التصنيف</th>
-                <th className="py-2.5 pl-4">الكاتب</th>
-                <th className="py-2.5 pl-4">نُشر بواسطة</th>
-                <th className="py-2.5 pl-4">الحالة</th>
-                {(canEdit || isSuperAdmin) && <th className="py-2.5"></th>}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((a) => (
-                <tr key={a.id} className="border-b border-ink/5 last:border-0">
-                  <td className="py-3 pl-4 font-bold">{a.title}{a.is_featured && ' ⭐'}</td>
-                  <td className="py-3 pl-4 text-ink/60">{a.category}</td>
-                  <td className="py-3 pl-4 text-ink/60">{a.author}</td>
-                  <td className="py-3 pl-4 text-ink/45"><PublisherNote item={a} /></td>
-                  <td className="py-3 pl-4">
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge tone={a.is_published ? 'success' : 'neutral'}>{a.is_published ? 'منشور' : 'غير منشور'}</Badge>
-                      <PendingBadge item={a} />
-                    </div>
-                  </td>
-                  {(canEdit || isSuperAdmin) && (
-                    <td className="py-3">
-                      <div className="flex justify-end gap-1.5">
-                        {canEdit && (
-                          <button onClick={() => openEdit(a)} className="rounded-lg p-2 text-ink/50 hover:bg-sand hover:text-ink" aria-label="تعديل"><EditIcon className="h-4 w-4" /></button>
-                        )}
-                        {isSuperAdmin && (
-                          <button onClick={() => handleDelete(a.id)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-4 w-4" /></button>
-                        )}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((a) => (
+            <div key={a.id} className="group flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm">
+              <div className="relative h-36 w-full overflow-hidden">
+                {a.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.image_url} alt={a.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                ) : (
+                  <div className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${ART_BG[a.art_theme]}`}>
+                    <BookIcon className="h-9 w-9 text-white/70" />
+                  </div>
+                )}
+                <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
+                  {!a.is_published && <Badge tone="neutral">غير منشور</Badge>}
+                  <PendingBadge item={a} />
+                </div>
+                {(canEdit || isSuperAdmin) && (
+                  <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-2 opacity-0 transition group-hover:opacity-100">
+                    {canEdit && (
+                      <button onClick={() => openEdit(a)} className="rounded-lg bg-white/90 p-1.5 text-ink/60 shadow hover:text-ink" aria-label="تعديل"><EditIcon className="h-3.5 w-3.5" /></button>
+                    )}
+                    {isSuperAdmin && (
+                      <button onClick={() => handleDelete(a.id)} className="rounded-lg bg-white/90 p-1.5 text-rose-500 shadow hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-3.5 w-3.5" /></button>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-1 flex-col p-4">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="rounded-full bg-sand-2 px-2.5 py-0.5 font-utility text-[11px] font-bold text-ink/60">{a.category}</span>
+                  {a.is_featured && <span className="text-sm">⭐</span>}
+                </div>
+                <b className="line-clamp-2 font-display text-base leading-snug">{a.title}</b>
+                <p className="mt-1.5 text-xs text-ink/50">{a.author}</p>
+                <p className="mt-2 text-[11px] text-ink/40"><PublisherNote item={a} /></p>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </SectionCard>

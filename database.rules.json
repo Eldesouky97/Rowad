@@ -100,6 +100,8 @@
         },
         "is_featured":   { ".validate": "!newData.exists() || newData.isBoolean()" },
         "art_theme":     { ".validate": "!newData.exists() || newData.val().matches(/^art-[1-4]$/)" },
+        "storage_path":  { ".validate": "!newData.exists() || newData.isString()" },
+        "image_url":     { ".validate": "!newData.exists() || newData.isString()" },
         "is_published":  { ".validate": "newData.isBoolean()" },
         "published_at":  { ".validate": true },
         "created_by_uid":  { ".validate": "!newData.exists() || newData.isString()" },
