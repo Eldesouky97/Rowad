@@ -21,7 +21,7 @@ import { getMyBookedEventIds } from '@/lib/bookings';
 import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum } from '@/lib/types';
 import {
   CalendarIcon, ArrowIcon, HandsIcon, BookIcon, CompassIcon,
-  LeafIcon, MegaphoneIcon, HeartIcon, StarIcon, ImageIcon, LayersIcon, ZoomIcon, UsersIcon, PinIcon,
+  LeafIcon, MegaphoneIcon, HeartIcon, StarIcon, ImageIcon, LayersIcon, ZoomIcon, UsersIcon, PinIcon, SearchIcon,
 } from '@/components/icons';
 
 const ART_BG: Record<string, string> = {
@@ -131,6 +131,8 @@ export default function HomePage() {
   const [bookingEvent, setBookingEvent] = useState<EventItem | null>(null);
   const [galleryFilter, setGalleryFilter] = useState<string>('all');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [programSearch, setProgramSearch] = useState('');
+  const [programCategory, setProgramCategory] = useState<string>('all');
 
   useEffect(() => {
     setBookedIds(getMyBookedEventIds());
@@ -148,6 +150,14 @@ export default function HomePage() {
     .filter((group) => group.images.length > 0);
   const galleryVisible =
     galleryFilter === 'all' ? gallery : gallery.filter((g) => g.album_id === galleryFilter);
+
+  const programCategories = Array.from(new Set(programs.map((p) => p.category)));
+  const programsVisible = programs.filter((p) => {
+    const matchesCategory = programCategory === 'all' || p.category === programCategory;
+    const q = programSearch.trim();
+    const matchesSearch = !q || p.title.includes(q) || p.description.includes(q);
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <>
@@ -255,27 +265,65 @@ export default function HomePage() {
       {/* ============ PROGRAMS ============ */}
       <section id="programs" className="bg-cream py-20">
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
-          <Reveal className="mb-10 max-w-[640px]">
+          <Reveal className="mb-8 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-rust">
               <span className="h-0.5 w-6 bg-rust" /> برامجنا
             </p>
             <h2 className="font-display text-3xl">برامج متخصصة لتمكين الشباب ودعم التنمية</h2>
           </Reveal>
-          <Reveal className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {programs.map((p) => {
-              const Icon = PROGRAM_ICONS[p.category] ?? BookIcon;
-              return (
-                <div key={p.id} className="rounded-[18px] border border-gold/25 bg-white p-7 shadow-card transition-transform hover:-translate-y-1">
-                  <div className={`mb-5 flex h-14 w-14 items-center justify-center rounded-2xl text-white ${ART_BG[p.art_theme]}`}>
-                    <Icon className="h-6 w-6" />
-                  </div>
-                  <span className="mb-2 block font-utility text-[11px] font-bold text-rust">{p.category}</span>
-                  <h3 className="mb-2 font-display text-lg">{p.title}</h3>
-                  <p className="text-sm opacity-80">{p.description}</p>
-                </div>
-              );
-            })}
+
+          <Reveal className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-[280px]">
+              <SearchIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40" />
+              <input
+                value={programSearch}
+                onChange={(e) => setProgramSearch(e.target.value)}
+                placeholder="ابحث في البرامج…"
+                className="w-full rounded-full border border-gold/30 bg-white py-2.5 pl-4 pr-10 text-sm outline-none transition focus:border-rust/50 focus:ring-2 focus:ring-rust/10"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setProgramCategory('all')}
+                className={`rounded-full px-4 py-2 text-xs font-bold transition ${programCategory === 'all' ? 'bg-rust text-white' : 'bg-rust/10 text-rust hover:bg-rust/15'}`}
+              >
+                الكل
+              </button>
+              {programCategories.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setProgramCategory(c)}
+                  className={`rounded-full px-4 py-2 text-xs font-bold transition ${programCategory === c ? 'bg-rust text-white' : 'bg-rust/10 text-rust hover:bg-rust/15'}`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
           </Reveal>
+
+          {programsVisible.length === 0 ? (
+            <p className="py-10 text-center text-sm opacity-50">لا توجد برامج مطابقة لبحثك.</p>
+          ) : (
+            <Reveal key={`${programCategory}-${programSearch}`} className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {programsVisible.map((p) => {
+                const Icon = PROGRAM_ICONS[p.category] ?? BookIcon;
+                return (
+                  <div
+                    key={p.id}
+                    className="group flex flex-col rounded-[18px] border border-gold/25 bg-white p-7 shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
+                  >
+                    <div className={`mb-5 flex h-14 w-14 items-center justify-center rounded-2xl text-white transition-transform duration-300 group-hover:scale-110 ${ART_BG[p.art_theme]}`}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <span className="mb-2 block font-utility text-[11px] font-bold text-rust">{p.category}</span>
+                    <h3 className="mb-2 font-display text-lg">{p.title}</h3>
+                    <p className="flex-1 text-sm opacity-80">{p.description}</p>
+                    {p.author && <p className="mt-3 text-[11px] font-bold text-rust/70">بقلم: {p.author}</p>}
+                  </div>
+                );
+              })}
+            </Reveal>
+          )}
         </div>
       </section>
 

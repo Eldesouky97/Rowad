@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { adminGetEvents, adminGetEventBookings } from '@/lib/api';
+import { downloadCsv } from '@/lib/csv';
 import type { Booking, EventItem } from '@/lib/types';
+import { DownloadIcon } from '@/components/icons';
 import { SectionCard, EmptyState } from './shared';
 
 export default function BookingsCard() {
@@ -24,8 +26,40 @@ export default function BookingsCard() {
       .finally(() => setLoading(false));
   }, [selected]);
 
+  const selectedEvent = events.find((ev) => ev.id === selected);
+
+  function handleExport() {
+    if (!selectedEvent || bookings.length === 0) return;
+    downloadCsv(
+      `حجوزات-${selectedEvent.title}`,
+      ['الاسم', 'الهاتف', 'البريد الإلكتروني', 'المحافظة', 'كود التأكيد', 'ملاحظات', 'تاريخ الحجز'],
+      bookings.map((b) => [
+        b.full_name,
+        b.phone,
+        b.email,
+        b.governorate || '',
+        b.confirmation_code,
+        b.notes || '',
+        new Date(b.created_at).toLocaleString('ar-EG'),
+      ])
+    );
+  }
+
   return (
-    <SectionCard title="حجوزات الفعاليات" description="اختر فعالية لعرض قائمة الحاجزين">
+    <SectionCard
+      title="حجوزات الفعاليات"
+      description="اختر فعالية لعرض قائمة الحاجزين"
+      action={
+        bookings.length > 0 && (
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 rounded-full border border-violet-200 px-4 py-2 text-xs font-bold text-violet-700 transition hover:bg-violet-50"
+          >
+            <DownloadIcon className="h-3.5 w-3.5" /> تنزيل كملف إكسيل
+          </button>
+        )
+      }
+    >
       <select
         value={selected}
         onChange={(e) => setSelected(e.target.value)}

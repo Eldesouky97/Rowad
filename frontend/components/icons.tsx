@@ -130,3 +130,6 @@ export const ZoomIcon = (p: SVGProps<SVGSVGElement>) => (
 export const LayersIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="M12 3l9 5-9 5-9-5 9-5z" /><path d="M3 13l9 5 9-5" /></svg>
 );
+export const DownloadIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}><path d="M12 4v12M7.5 11.5L12 16l4.5-4.5" /><path d="M4 16.5V18a2 2 0 002 2h12a2 2 0 002-2v-1.5" /></svg>
+);

@@ -1,16 +1,24 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { adminGetEvents, adminCreateEvent, adminUpdateEvent, adminDeleteEvent, ApiException } from '@/lib/api';
 import type { EventItem } from '@/lib/types';
-import { PlusIcon, EditIcon, TrashIcon } from '@/components/icons';
+import { PlusIcon, EditIcon, TrashIcon, CalendarIcon, PinIcon, SeatIcon } from '@/components/icons';
 import {
   GOVS, EVENT_MODES, ART_THEMES, inputClass, labelClass, toDatetimeLocalValue,
-  SectionCard, Badge, EmptyState, ErrorText, PublisherNote, type Notify,
+  SectionCard, Badge, EmptyState, ErrorText, PublisherNote, SearchBox, type Notify,
 } from './shared';
+
+const ART_BG: Record<string, string> = {
+  'art-1': 'from-sea to-[#0a4247]',
+  'art-2': 'from-rust to-[#7a3620]',
+  'art-3': 'from-gold to-[#a9782c]',
+  'art-4': 'from-night-3 to-night',
+};
 
 export default function EventsManager({ canEdit, showToast }: { canEdit: boolean; showToast: Notify }) {
   const [items, setItems] = useState<EventItem[]>([]);
+  const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<EventItem | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -20,6 +28,14 @@ export default function EventsManager({ canEdit, showToast }: { canEdit: boolean
     adminGetEvents().then(setItems).catch(() => setItems([]));
   }
   useEffect(refresh, []);
+
+  const filteredItems = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((ev) =>
+      `${ev.title} ${ev.category} ${ev.governorate} ${ev.location}`.toLowerCase().includes(q)
+    );
+  }, [items, search]);
 
   function openCreate() {
     setEditing(null);
@@ -85,16 +101,19 @@ export default function EventsManager({ canEdit, showToast }: { canEdit: boolean
   return (
     <SectionCard
       title="إدارة الفعاليات"
-      description={`${items.length} فعالية`}
+      description={`${filteredItems.length} من ${items.length} فعالية`}
       action={
-        canEdit && (
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-violet-700"
-          >
-            <PlusIcon className="h-3.5 w-3.5" /> إضافة فعالية
-          </button>
-        )
+        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+          <SearchBox value={search} onChange={setSearch} placeholder="ابحث بالعنوان أو المحافظة…" />
+          {canEdit && (
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-violet-700"
+            >
+              <PlusIcon className="h-3.5 w-3.5" /> إضافة فعالية
+            </button>
+          )}
+        </div>
       }
     >
       {showForm && canEdit && (
@@ -175,49 +194,35 @@ export default function EventsManager({ canEdit, showToast }: { canEdit: boolean
         </form>
       )}
 
-      {items.length === 0 ? (
-        <EmptyState message="لا توجد فعاليات بعد." />
+      {filteredItems.length === 0 ? (
+        <EmptyState message={search ? 'لا توجد فعاليات مطابقة لبحثك.' : 'لا توجد فعاليات بعد.'} />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-ink/10 text-right text-xs font-bold text-ink/45">
-                <th className="py-2.5 pl-4">العنوان</th>
-                <th className="py-2.5 pl-4">المحافظة</th>
-                <th className="py-2.5 pl-4">التاريخ</th>
-                <th className="py-2.5 pl-4">المقاعد</th>
-                <th className="py-2.5 pl-4">نُشر بواسطة</th>
-                <th className="py-2.5 pl-4">الحالة</th>
-                {canEdit && <th className="py-2.5"></th>}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((ev) => (
-                <tr key={ev.id} className="border-b border-ink/5 last:border-0">
-                  <td className="py-3 pl-4 font-bold">{ev.title}</td>
-                  <td className="py-3 pl-4 text-ink/60">{ev.governorate}</td>
-                  <td className="py-3 pl-4 text-ink/60">{new Date(ev.starts_at).toLocaleDateString('ar-EG')}</td>
-                  <td className="py-3 pl-4 text-ink/60">{ev.seats_taken}/{ev.seats_total}</td>
-                  <td className="py-3 pl-4 text-ink/45"><PublisherNote item={ev} /></td>
-                  <td className="py-3 pl-4">
-                    <Badge tone={ev.is_published ? 'success' : 'neutral'}>{ev.is_published ? 'منشورة' : 'غير منشورة'}</Badge>
-                  </td>
-                  {canEdit && (
-                    <td className="py-3">
-                      <div className="flex justify-end gap-1.5">
-                        <button onClick={() => openEdit(ev)} className="rounded-lg p-2 text-ink/50 hover:bg-sand hover:text-ink" aria-label="تعديل">
-                          <EditIcon className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => handleDelete(ev.id)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50" aria-label="حذف">
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredItems.map((ev) => (
+            <div key={ev.id} className="group relative flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
+              <div className={`flex h-24 items-center justify-center bg-gradient-to-br text-white ${ART_BG[ev.art_theme]}`}>
+                <CalendarIcon className="h-8 w-8 opacity-80" />
+              </div>
+              <div className="flex flex-1 flex-col gap-2 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-display text-sm font-bold leading-snug">{ev.title}</h3>
+                  <Badge tone={ev.is_published ? 'success' : 'neutral'}>{ev.is_published ? 'منشورة' : 'غير منشورة'}</Badge>
+                </div>
+                <div className="flex flex-wrap gap-3 text-xs text-ink/55">
+                  <span className="flex items-center gap-1"><PinIcon className="h-3.5 w-3.5" /> {ev.governorate}</span>
+                  <span className="flex items-center gap-1"><CalendarIcon className="h-3.5 w-3.5" /> {new Date(ev.starts_at).toLocaleDateString('ar-EG')}</span>
+                  <span className="flex items-center gap-1"><SeatIcon className="h-3.5 w-3.5" /> {ev.seats_taken}/{ev.seats_total}</span>
+                </div>
+                <PublisherNote item={ev} className="mt-auto pt-1" />
+              </div>
+              {canEdit && (
+                <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-2 opacity-0 transition group-hover:opacity-100">
+                  <button onClick={() => openEdit(ev)} className="rounded-lg bg-white/90 p-1.5 text-ink/60 shadow hover:text-ink" aria-label="تعديل"><EditIcon className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => handleDelete(ev.id)} className="rounded-lg bg-white/90 p-1.5 text-rose-500 shadow hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-3.5 w-3.5" /></button>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </SectionCard>
