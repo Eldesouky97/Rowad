@@ -104,6 +104,15 @@ export const getSuccessStories = async (): Promise<SuccessStory[]> => {
     .sort((a, b) => a.order - b.order) as SuccessStory[];
 };
 
+export const getSuccessStory = async (slug: string): Promise<SuccessStory> => {
+  const raw = await restGet<Record<string, SuccessStory>>('success_stories');
+  const found = objectToArray(raw)
+    .filter((s) => s.is_published)
+    .find((s) => s.slug === slug);
+  if (!found) throw new ApiException('قصة النجاح غير موجودة', 404);
+  return found as SuccessStory;
+};
+
 export const getGallery = async (): Promise<GalleryImage[]> => {
   const raw = await restGet<Record<string, GalleryImage>>('gallery_images');
   return objectToArray(raw)

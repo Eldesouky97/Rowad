@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import EventCard from '@/components/EventCard';
 import ArticleCard from '@/components/ArticleCard';
+import SuccessStoryCard from '@/components/SuccessStoryCard';
 import BookingModal from '@/components/BookingModal';
 import ContactSection from '@/components/ContactSection';
 import Reveal from '@/components/Reveal';
@@ -23,7 +24,7 @@ import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryIma
 import Counter from '@/components/Counter';
 import {
   CalendarIcon, ArrowIcon, HandsIcon, BookIcon, CompassIcon,
-  LeafIcon, MegaphoneIcon, HeartIcon, StarIcon, ImageIcon, LayersIcon, ZoomIcon, UsersIcon, PinIcon, SearchIcon,
+  LeafIcon, MegaphoneIcon, HeartIcon, ImageIcon, LayersIcon, ZoomIcon, UsersIcon, PinIcon, SearchIcon,
   FlagIcon, SparkIcon,
 } from '@/components/icons';
 
@@ -110,17 +111,6 @@ function AlbumCoverCard({
         </span>
       </div>
     </button>
-  );
-}
-
-/** بيلف محتوى الكارت في Link (بدون كسر تخطيط الـ flex/gap الخاص بالأب) لو فيه رابط
- * محافظة مرتبطة، وإلا بيرجّع المحتوى زي ما هو — أساس ترابط قصص النجاح بصفحة المحافظة */
-function CardLink({ href, children }: { href: string | null; children: React.ReactNode }) {
-  if (!href) return <>{children}</>;
-  return (
-    <Link href={href} className="contents">
-      {children}
-    </Link>
   );
 }
 
@@ -468,53 +458,9 @@ export default function HomePage() {
             <h2 className="font-display text-3xl">استمع إلى قصص شباب استفادوا من برامجنا</h2>
           </Reveal>
           <Reveal variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {stories.map((s) => {
-              const storyHref = s.governorate && govSlugByName[s.governorate] ? `/governorates/${govSlugByName[s.governorate]}` : null;
-              return (
-              <div
-                key={s.id}
-                className="group flex flex-col overflow-hidden rounded-[18px] border border-gold/25 bg-white shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
-              >
-                <CardLink href={storyHref}>
-                {s.image_url ? (
-                  <div className="relative h-40 w-full overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={s.image_url}
-                      alt={s.name}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-night/80 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-4 text-cream">
-                      <b className="block font-utility text-sm">{s.name}</b>
-                      <span className="text-xs opacity-80">{s.role_title}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-gold/20 to-rust/10">
-                    <UsersIcon className="h-10 w-10 text-rust/50" />
-                  </div>
-                )}
-                <div className="flex flex-1 flex-col p-6">
-                  <div className="mb-3 flex gap-1 text-gold">
-                    {Array.from({ length: 5 }).map((_, i) => <StarIcon key={i} className="h-4 w-4" />)}
-                  </div>
-                  <p className="flex-1 text-sm italic opacity-85">&quot;{s.quote}&quot;</p>
-                  {!s.image_url && (
-                    <div className="mt-4 border-t border-gold/15 pt-3">
-                      <b className="block font-utility text-sm">{s.name}</b>
-                      <span className="text-xs opacity-65">{s.role_title}</span>
-                    </div>
-                  )}
-                  {s.author && (
-                    <p className="mt-3 text-[11px] font-bold text-rust/70">بقلم: {s.author}</p>
-                  )}
-                </div>
-                </CardLink>
-              </div>
-              );
-            })}
+            {stories.map((s) => (
+              <SuccessStoryCard key={s.id} story={s} />
+            ))}
           </Reveal>
         </div>
       </section>

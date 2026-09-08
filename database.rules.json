@@ -148,13 +148,16 @@
 
     "success_stories": {
       ".read": true,
+      ".indexOn": ["slug"],
       "$storyId": {
         ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || (root.child('admins').child(auth.uid).child('role').val() === 'editor' && newData.exists() && newData.child('is_published').val() === false))",
         ".validate": "newData.hasChildren(['name','role_title','quote'])",
         "name":         { ".validate": "newData.isString() && newData.val().length > 0" },
+        "slug":         { ".validate": "!newData.exists() || newData.isString()" },
         "role_title":   { ".validate": "newData.isString()" },
         "governorate":  { ".validate": "!newData.exists() || newData.isString()" },
         "quote":        { ".validate": "newData.isString()" },
+        "full_story":   { ".validate": "!newData.exists() || newData.isString()" },
         "storage_path": { ".validate": "!newData.exists() || newData.isString()" },
         "image_url":    { ".validate": "!newData.exists() || newData.isString()" },
         "order":        { ".validate": "!newData.exists() || newData.isNumber()" },

@@ -124,10 +124,14 @@ export interface Governorate extends Publishable {
 
 export interface SuccessStory extends Publishable {
   id: string;
+  slug: string;
   name: string;
   role_title: string;
   governorate: string | null;
+  /** اقتباس قصير يظهر في الكارت */
   quote: string;
+  /** القصة كاملة (HTML من محرر التنسيق الغني) — تظهر في صفحة القصة المستقلة، اختياري */
+  full_story?: string | null;
   storage_path: string | null;
   image_url: string | null;
   order: number;

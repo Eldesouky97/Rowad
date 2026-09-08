@@ -5,12 +5,13 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import EventCard from '@/components/EventCard';
 import ArticleCard from '@/components/ArticleCard';
+import SuccessStoryCard from '@/components/SuccessStoryCard';
 import BookingModal from '@/components/BookingModal';
 import Reveal from '@/components/Reveal';
 import { getGovernorate, getEvents, getArticles, getSuccessStories } from '@/lib/api';
 import { getMyBookedEventIds } from '@/lib/bookings';
 import type { Governorate, EventItem, Article, SuccessStory } from '@/lib/types';
-import { PinIcon, ArrowIcon, CalendarIcon, BookIcon, UsersIcon, StarIcon } from '@/components/icons';
+import { PinIcon, ArrowIcon, CalendarIcon, BookIcon, UsersIcon } from '@/components/icons';
 
 export default function GovernoratePage() {
   const params = useParams<{ slug: string }>();
@@ -165,38 +166,7 @@ export default function GovernoratePage() {
                 </Reveal>
                 <Reveal variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {stories.map((s) => (
-                    <div
-                      key={s.id}
-                      className="flex flex-col overflow-hidden rounded-[18px] border border-gold/25 bg-white shadow-card"
-                    >
-                      {s.image_url ? (
-                        <div className="relative h-40 w-full overflow-hidden">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={s.image_url} alt={s.name} loading="lazy" className="h-full w-full object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-night/80 to-transparent" />
-                          <div className="absolute inset-x-0 bottom-0 p-4 text-cream">
-                            <b className="block font-utility text-sm">{s.name}</b>
-                            <span className="text-xs opacity-80">{s.role_title}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-gold/20 to-rust/10">
-                          <UsersIcon className="h-10 w-10 text-rust/50" />
-                        </div>
-                      )}
-                      <div className="flex flex-1 flex-col p-6">
-                        <div className="mb-3 flex gap-1 text-gold">
-                          {Array.from({ length: 5 }).map((_, i) => <StarIcon key={i} className="h-4 w-4" />)}
-                        </div>
-                        <p className="flex-1 text-sm italic opacity-85">&quot;{s.quote}&quot;</p>
-                        {!s.image_url && (
-                          <div className="mt-4 border-t border-gold/15 pt-3">
-                            <b className="block font-utility text-sm">{s.name}</b>
-                            <span className="text-xs opacity-65">{s.role_title}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <SuccessStoryCard key={s.id} story={s} />
                   ))}
                 </Reveal>
               </div>

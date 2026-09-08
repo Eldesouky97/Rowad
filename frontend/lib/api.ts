@@ -55,6 +55,7 @@ export {
   getGovernorates,
   getGovernorate,
   getSuccessStories,
+  getSuccessStory,
   getGallery,
   getGalleryAlbums,
   getSiteSettings,
@@ -700,11 +701,14 @@ export const adminGetSuccessStories = async (): Promise<SuccessStory[]> => {
 
 export const adminCreateSuccessStory = async (formData: FormData): Promise<SuccessStory> => {
   const file = formData.get('image') as File | null;
+  const name = String(formData.get('name') || '');
   const data: Record<string, unknown> = {
-    name: formData.get('name'),
+    name,
+    slug: makeSlug(name),
     role_title: formData.get('role_title'),
     governorate: formData.get('governorate') || null,
     quote: formData.get('quote'),
+    full_story: formData.get('full_story') || null,
     order: Number(formData.get('order') || 0),
     author: formData.get('author') || null,
     storage_path: null,
@@ -732,6 +736,7 @@ export const adminUpdateSuccessStory = async (id: string, formData: FormData): P
     role_title: formData.get('role_title'),
     governorate: formData.get('governorate') || null,
     quote: formData.get('quote'),
+    full_story: formData.get('full_story') || null,
     order: Number(formData.get('order') || 0),
     author: formData.get('author') || null,
     ...(await buildPublishFields(formData.get('is_published') !== 'false')),

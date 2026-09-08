@@ -1,18 +1,10 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import DOMPurify from 'isomorphic-dompurify';
 import { getArticle, getArticles, ApiException } from '@/lib/publicApi';
+import { isHtmlContent, sanitizeRichContent } from '@/lib/sanitizeContent';
 import ArticleCard from '@/components/ArticleCard';
 import ArticleEngagement from '@/components/ArticleEngagement';
 import { UsersIcon, CalendarIcon, ArrowIcon, BookIcon } from '@/components/icons';
-
-// مقالات جديدة بتتكتب بمحرر تنسيق غني (HTML)، ومقالات قديمة كانت نص خام
-// بفواصل سطرين بين الفقرات — بنفرّق بينهم بوجود أي وسم HTML من عدمه، عشان
-// المقالات القديمة تفضل تتعرض صح من غير ما تحتاج ترحيل بيانات.
-const HTML_TAG_RE = /<([a-z][\w-]*)\b[^>]*>/i;
-function isHtmlContent(content: string): boolean {
-  return HTML_TAG_RE.test(content);
-}
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   try {
@@ -73,7 +65,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
         {isHtmlContent(article.content) ? (
           <div
             className="rich-content mt-8 text-[1.02rem] leading-8 opacity-90"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content) }}
+            dangerouslySetInnerHTML={{ __html: sanitizeRichContent(article.content) }}
           />
         ) : (
           <div className="mt-8 space-y-4 text-[1.02rem] leading-8 opacity-90">

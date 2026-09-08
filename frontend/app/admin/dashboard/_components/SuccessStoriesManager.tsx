@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { adminGetSuccessStories, adminCreateSuccessStory, adminUpdateSuccessStory, adminDeleteSuccessStory, ApiException } from '@/lib/api';
 import type { SuccessStory } from '@/lib/types';
 import { PlusIcon, EditIcon, TrashIcon, UsersIcon } from '@/components/icons';
+import RichTextEditor from '@/components/RichTextEditor';
 import {
   GOVS, inputClass, labelClass, SectionCard, Badge,
   EmptyState, ErrorText, PublisherNote, PendingBadge, EditorReviewNotice, publishToast, type Notify,
@@ -23,14 +24,15 @@ export default function SuccessStoriesManager({
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fullStory, setFullStory] = useState('');
 
   function refresh() {
     adminGetSuccessStories().then(setItems).catch(() => setItems([]));
   }
   useEffect(refresh, []);
 
-  function openCreate() { setEditing(null); setShowForm(true); }
-  function openEdit(s: SuccessStory) { setEditing(s); setShowForm(true); }
+  function openCreate() { setEditing(null); setFullStory(''); setShowForm(true); }
+  function openEdit(s: SuccessStory) { setEditing(s); setFullStory(s.full_story ?? ''); setShowForm(true); }
   function closeForm() { setShowForm(false); setEditing(null); setError(null); }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -39,6 +41,7 @@ export default function SuccessStoriesManager({
     const formData = new FormData(e.currentTarget);
     const imageEntry = formData.get('image');
     if (imageEntry instanceof File && imageEntry.size === 0) formData.delete('image');
+    formData.set('full_story', fullStory);
 
     setSubmitting(true);
     try {
@@ -102,8 +105,12 @@ export default function SuccessStoriesManager({
             <input name="order" type="number" min={0} defaultValue={editing?.order ?? 0} className={inputClass} />
           </div>
           <div className="sm:col-span-2">
-            <label className={labelClass}>نص الاقتباس</label>
+            <label className={labelClass}>نص الاقتباس (يظهر في الكارت المختصر)</label>
             <textarea name="quote" required rows={3} defaultValue={editing?.quote} className={inputClass} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass}>القصة كاملة (اختياري — تظهر في صفحة القصة المستقلة. لو تُركت فاضية هيظهر نص الاقتباس بدلًا منها)</label>
+            <RichTextEditor value={fullStory} onChange={setFullStory} placeholder="اكتب القصة كاملة هنا…" />
           </div>
           <div>
             <label className={labelClass}>اسم الكاتب (اختياري — يظهر للجمهور)</label>
