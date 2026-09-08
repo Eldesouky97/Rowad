@@ -7,6 +7,7 @@ import ArticleCard from '@/components/ArticleCard';
 import BookingModal from '@/components/BookingModal';
 import ContactSection from '@/components/ContactSection';
 import Reveal from '@/components/Reveal';
+import Lightbox from '@/components/Lightbox';
 import {
   getEvents,
   getArticles,
@@ -20,7 +21,7 @@ import { getMyBookedEventIds } from '@/lib/bookings';
 import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum } from '@/lib/types';
 import {
   CalendarIcon, ArrowIcon, HandsIcon, BookIcon, CompassIcon,
-  LeafIcon, MegaphoneIcon, HeartIcon, StarIcon,
+  LeafIcon, MegaphoneIcon, HeartIcon, StarIcon, ImageIcon, LayersIcon, ZoomIcon,
 } from '@/components/icons';
 
 const ART_BG: Record<string, string> = {
@@ -30,22 +31,82 @@ const ART_BG: Record<string, string> = {
   'art-4': 'bg-gradient-to-br from-night-3 to-night',
 };
 
-function GalleryTile({ g }: { g: GalleryImage }) {
+function GalleryTile({ g, onOpen }: { g: GalleryImage; onOpen: () => void }) {
   return (
-    <div className="group relative aspect-square overflow-hidden rounded-2xl">
+    <button
+      onClick={onOpen}
+      className="group relative aspect-square w-full overflow-hidden rounded-2xl text-right outline-none focus-visible:ring-2 focus-visible:ring-gold-2"
+    >
       {g.image_url ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={g.image_url} alt={g.title} className="h-full w-full object-cover" />
+        <img
+          src={g.image_url}
+          alt={g.title}
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+        />
       ) : (
-        <div className={`flex h-full w-full items-center justify-center ${ART_BG[g.art_theme]}`}>
+        <div className={`flex h-full w-full items-center justify-center transition-transform duration-500 group-hover:scale-110 ${ART_BG[g.art_theme]}`}>
           <CompassIcon className="h-8 w-8 opacity-70" />
         </div>
       )}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/0 to-black/0 opacity-70 transition-opacity group-hover:opacity-90" />
+      <div className="absolute inset-x-0 bottom-0 translate-y-1 p-3 transition-transform duration-300 group-hover:translate-y-0">
         <b className="block font-utility text-xs">{g.title}</b>
         {g.caption && <span className="text-[11px] opacity-75">{g.caption}</span>}
       </div>
-    </div>
+      <span className="absolute left-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100">
+        <ZoomIcon className="h-4 w-4" />
+      </span>
+    </button>
+  );
+}
+
+/** كارت غلاف الألبوم — صورة الغلاف (أول صورة فيه) + اسمه وعدد صوره، بيفتح فلترة المعرض على الألبوم ده */
+function AlbumCoverCard({
+  album,
+  cover,
+  count,
+  active,
+  onSelect,
+}: {
+  album: GalleryAlbum;
+  cover: GalleryImage | undefined;
+  count: number;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`group relative aspect-[4/3] shrink-0 w-[220px] overflow-hidden rounded-2xl text-right transition sm:w-auto ${
+        active ? 'ring-2 ring-gold-2' : 'ring-1 ring-white/10 hover:ring-gold-2/60'
+      }`}
+    >
+      {cover?.image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={cover.image_url}
+          alt={album.title}
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      ) : (
+        <div className={`flex h-full w-full items-center justify-center ${ART_BG[cover?.art_theme || 'art-1']}`}>
+          <LayersIcon className="h-9 w-9 opacity-60" />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+      {active && (
+        <span className="absolute left-3 top-3 rounded-full bg-gold-2 px-2.5 py-1 font-utility text-[10px] font-bold text-night">مُحدَّد</span>
+      )}
+      <div className="absolute inset-x-0 bottom-0 p-4">
+        <b className="block font-display text-base leading-tight">{album.title}</b>
+        <span className="mt-1 flex items-center gap-1.5 text-[11px] text-cream/70">
+          <ImageIcon className="h-3.5 w-3.5" /> {count} صورة
+        </span>
+      </div>
+    </button>
   );
 }
 
@@ -68,6 +129,8 @@ export default function HomePage() {
   const [galleryAlbums, setGalleryAlbums] = useState<GalleryAlbum[]>([]);
   const [bookedIds, setBookedIds] = useState<string[]>([]);
   const [bookingEvent, setBookingEvent] = useState<EventItem | null>(null);
+  const [galleryFilter, setGalleryFilter] = useState<string>('all');
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setBookedIds(getMyBookedEventIds());
@@ -83,9 +146,8 @@ export default function HomePage() {
   const galleryAlbumGroups = galleryAlbums
     .map((album) => ({ album, images: gallery.filter((g) => g.album_id === album.id) }))
     .filter((group) => group.images.length > 0);
-  const galleryUngrouped = gallery.filter(
-    (g) => !g.album_id || !galleryAlbumGroups.some((group) => group.album.id === g.album_id)
-  );
+  const galleryVisible =
+    galleryFilter === 'all' ? gallery : gallery.filter((g) => g.album_id === galleryFilter);
 
   return (
     <>
@@ -305,32 +367,61 @@ export default function HomePage() {
             </p>
             <h2 className="font-display text-3xl">لحظات من فعالياتنا ومشاريعنا وإنجازاتنا</h2>
           </Reveal>
-          {galleryAlbumGroups.length === 0 ? (
-            <Reveal className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {gallery.map((g) => <GalleryTile key={g.id} g={g} />)}
-            </Reveal>
-          ) : (
-            <div className="grid gap-10">
+
+          {/* ألبومات — شريط كروت قابل للسحب على الموبايل، شبكة على الشاشات الأوسع */}
+          {galleryAlbumGroups.length > 0 && (
+            <Reveal className="mb-8 -mx-5 flex snap-x gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+              <button
+                onClick={() => setGalleryFilter('all')}
+                className={`group relative aspect-[4/3] shrink-0 w-[220px] snap-start overflow-hidden rounded-2xl text-right transition sm:w-auto ${
+                  galleryFilter === 'all' ? 'ring-2 ring-gold-2' : 'ring-1 ring-white/10 hover:ring-gold-2/60'
+                }`}
+              >
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-700 to-night-3">
+                  <ImageIcon className="h-9 w-9 opacity-70" />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-4">
+                  <b className="block font-display text-base">كل الصور</b>
+                  <span className="mt-1 flex items-center gap-1.5 text-[11px] text-cream/70">
+                    <ImageIcon className="h-3.5 w-3.5" /> {gallery.length} صورة
+                  </span>
+                </div>
+              </button>
               {galleryAlbumGroups.map(({ album, images }) => (
-                <Reveal key={album.id}>
-                  <h3 className="mb-4 font-display text-xl text-gold-2">{album.title}</h3>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {images.map((g) => <GalleryTile key={g.id} g={g} />)}
-                  </div>
-                </Reveal>
+                <div key={album.id} className="shrink-0 snap-start sm:shrink">
+                  <AlbumCoverCard
+                    album={album}
+                    cover={images[0]}
+                    count={images.length}
+                    active={galleryFilter === album.id}
+                    onSelect={() => setGalleryFilter(album.id)}
+                  />
+                </div>
               ))}
-              {galleryUngrouped.length > 0 && (
-                <Reveal>
-                  <h3 className="mb-4 font-display text-xl text-gold-2">صور أخرى</h3>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {galleryUngrouped.map((g) => <GalleryTile key={g.id} g={g} />)}
-                  </div>
-                </Reveal>
-              )}
-            </div>
+            </Reveal>
+          )}
+
+          {/* شبكة الصور المفلترة */}
+          {galleryVisible.length === 0 ? (
+            <p className="py-10 text-center text-sm text-cream/50">لا توجد صور في هذا الألبوم بعد.</p>
+          ) : (
+            <Reveal key={galleryFilter} className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {galleryVisible.map((g, i) => (
+                <GalleryTile key={g.id} g={g} onOpen={() => setLightboxIndex(i)} />
+              ))}
+            </Reveal>
           )}
         </div>
       </section>
+
+      {lightboxIndex !== null && (
+        <Lightbox
+          images={galleryVisible.map((g) => ({ id: g.id, src: g.image_url || '', title: g.title, caption: g.caption }))}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
 
       {/* ============ GOVERNORATES ============ */}
       <section id="governorates" className="bg-sand py-20">

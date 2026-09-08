@@ -783,6 +783,20 @@ export const adminDeleteAlbum = async (id: string): Promise<void> => {
   }
 };
 
+// ينسب مجموعة صور موجودة بالفعل لألبوم معيّن دفعة واحدة (multi-path update)
+// — بيُستخدم في اختيار "صور قديمة" من المعرض لضمّها لألبوم بدل رفعها تاني.
+// albumId = null معناه فكّ الربط (نقل الصور لقسم "بدون ألبوم").
+export const adminAssignImagesToAlbum = async (imageIds: string[], albumId: string | null): Promise<void> => {
+  if (imageIds.length === 0) return;
+  const dbUpdates: Record<string, string | null> = {};
+  for (const id of imageIds) dbUpdates[`gallery_images/${id}/album_id`] = albumId;
+  try {
+    await update(ref(db), dbUpdates);
+  } catch (err) {
+    throw translateFirebaseError(err);
+  }
+};
+
 /* ============ Admin: Contact messages (قراءة فقط) ============ */
 interface ContactMessageRecord {
   name: string;
