@@ -10,9 +10,11 @@ import {
   ApiException,
 } from '@/lib/api';
 import { useVisitorProfile } from '@/lib/useVisitorProfile';
+import { GOVERNORATES, EDUCATION_LEVELS, COMMITTEES } from '@/lib/constants';
+import type { SiteUser } from '@/lib/types';
 import { useToast } from '@/components/Toast';
 import UserAvatar from '@/components/UserAvatar';
-import { CameraIcon, CompassIcon, LogoutIcon, MailIcon, KeyIcon } from '@/components/icons';
+import { CameraIcon, CompassIcon, LogoutIcon, MailIcon, KeyIcon, PinIcon } from '@/components/icons';
 
 const inputClass =
   'w-full rounded-lg border border-gold/40 bg-white px-3.5 py-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100';
@@ -51,6 +53,11 @@ export default function ProfilePage() {
           currentName={displayName}
           currentPhone={profile?.phone || ''}
           onSaved={() => showToast('تم حفظ بياناتك')}
+        />
+
+        <PersonalInfoCard
+          profile={profile}
+          onSaved={() => showToast('تم تحديث بياناتك الشخصية')}
         />
 
         {hasPasswordProvider ? (
@@ -204,6 +211,99 @@ function BasicInfoCard({
         className="mt-5 rounded-full bg-violet-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
       >
         {submitting ? 'جارٍ الحفظ…' : 'حفظ البيانات'}
+      </button>
+    </form>
+  );
+}
+
+function PersonalInfoCard({ profile, onSaved }: { profile: SiteUser | null; onSaved: () => void }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const nationalId = String(form.get('national_id') || '').trim();
+    const governorate = String(form.get('governorate') || '');
+    const address = String(form.get('address') || '').trim();
+    const ageRaw = String(form.get('age') || '');
+    const education = String(form.get('education') || '');
+    const committee = String(form.get('committee') || '');
+
+    if (nationalId && !/^\d{14}$/.test(nationalId)) {
+      setError('الرقم القومي يجب أن يتكوّن من ١٤ رقمًا');
+      return;
+    }
+    const age = ageRaw ? Number(ageRaw) : undefined;
+    if (age !== undefined && (age < 10 || age > 100)) {
+      setError('من فضلك أدخل سنًّا صحيحًا');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await updateVisitorProfile({
+        national_id: nationalId,
+        governorate,
+        address,
+        ...(age !== undefined ? { age } : {}),
+        education,
+        committee,
+      });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof ApiException ? err.message : 'تعذّر حفظ البيانات');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className={cardClass}>
+      <h2 className="mb-4 flex items-center gap-2 font-display text-lg"><PinIcon className="h-5 w-5 opacity-60" /> البيانات الشخصية</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className={labelClass}>الرقم القومي</label>
+          <input name="national_id" inputMode="numeric" maxLength={14} defaultValue={profile?.national_id || ''} className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass}>السن</label>
+          <input name="age" type="number" min={10} max={100} defaultValue={profile?.age ?? ''} className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass}>المحافظة</label>
+          <select name="governorate" defaultValue={profile?.governorate || ''} className={inputClass}>
+            <option value="">— اختر —</option>
+            {GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className={labelClass}>المؤهل التعليمي</label>
+          <select name="education" defaultValue={profile?.education || ''} className={inputClass}>
+            <option value="">— اختر —</option>
+            {EDUCATION_LEVELS.map((ed) => <option key={ed} value={ed}>{ed}</option>)}
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelClass}>العنوان</label>
+          <input name="address" defaultValue={profile?.address || ''} className={inputClass} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelClass}>اللجنة داخل الكيان</label>
+          <select name="committee" defaultValue={profile?.committee || ''} className={inputClass}>
+            <option value="">مش عضو في لجنة حاليًا</option>
+            {COMMITTEES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
+      {error && <p className="mt-3 text-sm text-[#e08a6b]">{error}</p>}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="mt-5 rounded-full bg-violet-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
+      >
+        {submitting ? 'جارٍ الحفظ…' : 'حفظ البيانات الشخصية'}
       </button>
     </form>
   );

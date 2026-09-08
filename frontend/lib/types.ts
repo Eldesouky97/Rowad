@@ -166,6 +166,15 @@ export interface SiteUser {
   email: string;
   phone?: string;
   photo_url?: string;
+  national_id?: string;
+  governorate?: string;
+  address?: string;
+  age?: number;
+  education?: string;
+  /** اللجنة داخل الكيان — نفس تصنيفات البرامج */
+  committee?: string;
+  /** true بعد ما يملأ الزائر نموذج إكمال البيانات الإجباري أول مرة */
+  profile_completed?: boolean;
   provider?: string;
   created_at?: string;
   last_login_at?: string;
@@ -174,6 +183,12 @@ export interface SiteUser {
 export interface VisitorProfilePayload {
   name?: string;
   phone?: string;
+  national_id?: string;
+  governorate?: string;
+  address?: string;
+  age?: number;
+  education?: string;
+  committee?: string;
 }
 
 export interface ApiError {

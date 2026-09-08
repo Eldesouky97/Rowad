@@ -16,6 +16,8 @@ export interface VisitorProfileState {
   isAdmin: boolean;
   /** أول تحميل لحالة تسجيل الدخول لسه شغّال */
   loading: boolean;
+  /** وصل أول رد من /site_users بالفعل (فرّق بين "لسه بيتحمّل" و"وصل ومفيش بيانات") */
+  profileLoaded: boolean;
   /** أفضل اسم متاح للعرض: بروفايل الموقع، وإلا اسم Firebase، وإلا البريد */
   displayName: string;
   /** أفضل صورة متاحة: صورة مرفوعة يدويًا، وإلا صورة مزوّد الدخول (جوجل مثلًا) */
@@ -31,6 +33,7 @@ export interface VisitorProfileState {
 export function useVisitorProfile(): VisitorProfileState {
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<SiteUser | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -40,6 +43,7 @@ export function useVisitorProfile(): VisitorProfileState {
       setLoading(false);
       if (!user) {
         setProfile(null);
+        setProfileLoaded(false);
         setIsAdmin(false);
       }
     });
@@ -50,6 +54,7 @@ export function useVisitorProfile(): VisitorProfileState {
     if (!authUser) return;
     const unsubProfile = onValue(ref(db, `site_users/${authUser.uid}`), (snap) => {
       setProfile(snap.exists() ? ({ id: authUser.uid, ...snap.val() } as SiteUser) : null);
+      setProfileLoaded(true);
     });
     const unsubAdmin = onValue(ref(db, `admins/${authUser.uid}`), (snap) => {
       setIsAdmin(snap.exists());
@@ -63,5 +68,5 @@ export function useVisitorProfile(): VisitorProfileState {
   const displayName = profile?.name || authUser?.displayName || authUser?.email || 'حسابي';
   const photoUrl = profile?.photo_url || authUser?.photoURL || null;
 
-  return { authUser, profile, isAdmin, loading, displayName, photoUrl };
+  return { authUser, profile, profileLoaded, isAdmin, loading, displayName, photoUrl };
 }

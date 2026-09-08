@@ -213,14 +213,33 @@ async function reauthenticateVisitor(currentPassword: string): Promise<void> {
   }
 }
 
-/** يحدّث الاسم و/أو رقم الهاتف و/أو صورة الحساب (Auth profile + /site_users) */
+/**
+ * يحدّث بيانات حساب الزائر: الاسم/الهاتف/الصورة (Auth profile + /site_users)
+ * والبيانات الشخصية الإضافية (الرقم القومي، المحافظة، العنوان، السن،
+ * المؤهل التعليمي) — نفس الدالة يستخدمها نموذج إكمال البيانات الإجباري
+ * وصفحة إعدادات الحساب العادية، فرقهم بس markCompleted.
+ */
 export const updateVisitorProfile = async (payload: {
   name?: string;
   phone?: string;
+  national_id?: string;
+  governorate?: string;
+  address?: string;
+  age?: number;
+  education?: string;
+  committee?: string;
   photoFile?: File | null;
+  /** يعلّم البروفايل كمكتمل — يُستخدم عند إرسال نموذج إكمال البيانات الإجباري */
+  markCompleted?: boolean;
 }): Promise<void> => {
   const user = auth.currentUser;
   if (!user) throw new ApiException('سجّل الدخول أولًا', 401);
+
+  if (payload.national_id !== undefined && payload.national_id && !/^\d{14}$/.test(payload.national_id)) {
+    throw new ApiException('الرقم القومي يجب أن يتكوّن من ١٤ رقمًا', 422, {
+      national_id: ['الرقم القومي يجب أن يتكوّن من ١٤ رقمًا'],
+    });
+  }
 
   try {
     let photoURL: string | undefined;
@@ -239,7 +258,14 @@ export const updateVisitorProfile = async (payload: {
     const dbUpdates: Record<string, unknown> = {};
     if (payload.name) dbUpdates.name = payload.name;
     if (payload.phone !== undefined) dbUpdates.phone = payload.phone || null;
+    if (payload.national_id !== undefined) dbUpdates.national_id = payload.national_id || null;
+    if (payload.governorate !== undefined) dbUpdates.governorate = payload.governorate || null;
+    if (payload.address !== undefined) dbUpdates.address = payload.address || null;
+    if (payload.age !== undefined) dbUpdates.age = payload.age;
+    if (payload.education !== undefined) dbUpdates.education = payload.education || null;
+    if (payload.committee !== undefined) dbUpdates.committee = payload.committee || null;
     if (photoURL) dbUpdates.photo_url = photoURL;
+    if (payload.markCompleted) dbUpdates.profile_completed = true;
     if (Object.keys(dbUpdates).length) {
       await update(ref(db, `site_users/${user.uid}`), dbUpdates);
     }

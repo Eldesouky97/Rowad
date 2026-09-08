@@ -174,17 +174,24 @@
     },
 
     "site_users": {
-      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
       "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).exists())",
         ".write": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).child('role').val() === 'super_admin')",
         ".validate": "newData.hasChildren(['email'])",
-        "name":          { ".validate": "!newData.exists() || newData.isString()" },
-        "email":         { ".validate": "newData.isString() && newData.val().length > 0" },
-        "phone":         { ".validate": "!newData.exists() || newData.isString()" },
-        "photo_url":     { ".validate": "!newData.exists() || newData.isString()" },
-        "provider":      { ".validate": "!newData.exists() || newData.isString()" },
-        "created_at":    { ".validate": true },
-        "last_login_at": { ".validate": true }
+        "name":              { ".validate": "!newData.exists() || newData.isString()" },
+        "email":             { ".validate": "newData.isString() && newData.val().length > 0" },
+        "phone":             { ".validate": "!newData.exists() || newData.isString()" },
+        "photo_url":         { ".validate": "!newData.exists() || newData.isString()" },
+        "national_id":       { ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^[0-9]{14}$/))" },
+        "governorate":       { ".validate": "!newData.exists() || newData.isString()" },
+        "address":           { ".validate": "!newData.exists() || newData.isString()" },
+        "age":               { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 10 && newData.val() <= 100)" },
+        "education":         { ".validate": "!newData.exists() || newData.isString()" },
+        "committee":         { ".validate": "!newData.exists() || newData.isString()" },
+        "profile_completed": { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "provider":          { ".validate": "!newData.exists() || newData.isString()" },
+        "created_at":        { ".validate": true },
+        "last_login_at":     { ".validate": true }
       }
     },
 

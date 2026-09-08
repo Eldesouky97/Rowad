@@ -1,12 +1,10 @@
 import type { AdminUser } from '@/lib/types';
+import { GOVERNORATES, COMMITTEES } from '@/lib/constants';
 import { SearchIcon } from '@/components/icons';
 
 export const ARTICLE_CATEGORIES = ['أخبار الكيان', 'قصص نجاح', 'فعاليات', 'تنمية مجتمعية', 'مقالات رأي'];
-export const GOVS = [
-  'شمال سيناء', 'جنوب سيناء', 'أسوان', 'الوادي الجديد', 'مطروح',
-  'البحر الأحمر', 'السويس', 'الإسماعيلية', 'القاهرة الكبرى', 'الشرقية', 'عام',
-];
-export const PROGRAM_CATEGORIES = ['التعليم', 'السياحة', 'التضامن', 'الزراعة', 'الإعلام', 'الصحة'];
+export const GOVS = [...GOVERNORATES, 'عام'];
+export const PROGRAM_CATEGORIES = COMMITTEES;
 export const ART_THEMES = ['art-1', 'art-2', 'art-3', 'art-4'];
 export const EVENT_MODES = ['حضوري', 'أونلاين', 'هجين'];
 export const ROLES: AdminUser['role'][] = ['super_admin', 'editor', 'viewer'];

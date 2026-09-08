@@ -3,14 +3,12 @@
 import { FormEvent, useEffect, useState } from 'react';
 import type { EventItem } from '@/lib/types';
 import { createBooking, onVisitorAuthChange, ApiException } from '@/lib/api';
+import { GOVERNORATES } from '@/lib/constants';
 import { CloseIcon, CheckIcon } from './icons';
 import { useToast } from './Toast';
 import VisitorAuthGate from './VisitorAuthGate';
 
-const GOVS = [
-  'شمال سيناء', 'جنوب سيناء', 'أسوان', 'الوادي الجديد', 'مطروح',
-  'البحر الأحمر', 'السويس', 'الإسماعيلية', 'القاهرة الكبرى', 'الشرقية', 'أخرى',
-];
+const GOVS = [...GOVERNORATES, 'أخرى'];
 
 export default function BookingModal({
   event,
