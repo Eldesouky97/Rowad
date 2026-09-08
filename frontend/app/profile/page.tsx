@@ -25,13 +25,16 @@ const cardClass = 'rounded-[20px] border border-gold/20 bg-white p-6 sm:p-7';
 export default function ProfilePage() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { authUser, profile, loading, displayName, photoUrl } = useVisitorProfile();
+  const { authUser, profile, profileLoaded, loading, displayName, photoUrl } = useVisitorProfile();
 
   useEffect(() => {
     if (!loading && !authUser) router.replace('/login?next=/profile');
   }, [loading, authUser, router]);
 
-  if (loading || !authUser) {
+  // نستنى profileLoaded (مش بس loading) قبل ما نعرض النماذج — الحقول defaultValue
+  // (uncontrolled) بتاخد قيمتها الأولى وقت أول رندر بس، فلو عرضناها قبل ما بيانات
+  // /site_users توصل من Firebase، هتفضل فاضية حتى بعد ما البيانات توصل فعلًا.
+  if (loading || !authUser || !profileLoaded) {
     return <p className="py-24 text-center text-sm opacity-60">جارٍ التحقق…</p>;
   }
 
