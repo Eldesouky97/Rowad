@@ -129,9 +129,20 @@ export async function POST(req: NextRequest) {
   try {
     await adminAuth().deleteUser(uid);
   } catch (err) {
-    // حساب الـ Auth ممكن يكون محذوف بالفعل أو غير موجود أصلًا — بيانات RTDB
-    // اتمسحت فعلًا فمش لازم نوقف الطلب بخطأ عند المستخدم
-    console.error('adminAuth().deleteUser failed', err);
+    const code = (err as { code?: string })?.code || '';
+    if (code !== 'auth/user-not-found') {
+      // فشل حقيقي في حذف حساب المصادقة نفسه (صلاحيات service account ناقصة
+      // غالبًا) — بيانات RTDB اتمسحت فعلًا، لكن لازم نبلّغ الأدمن بوضوح إن
+      // الشخص لسه يقدر يسجّل دخول بنفس الحساب، بدل ما نرجّع "تم" مضلِّلة.
+      console.error('adminAuth().deleteUser failed', err);
+      return NextResponse.json(
+        {
+          message:
+            'اتمسحت بيانات المستخدم من الموقع، لكن تعذّر حذف حساب الدخول (Authentication) نفسه — الشخص لسه يقدر يسجّل دخول بنفس الحساب. راجع صلاحيات مفتاح خدمة Firebase Admin (لازم يملك دور Firebase Authentication Admin).',
+        },
+        { status: 500 }
+      );
+    }
   }
 
   return NextResponse.json({ message: 'تم حذف الحساب وكل بياناته نهائيًا' });

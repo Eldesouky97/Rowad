@@ -100,20 +100,6 @@ body {
   }
 }
 
-/* ============ شريط "عاجل" — تمرير أفقي مستمر لعناوين آخر الأخبار ============ */
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-.animate-marquee { animation: marquee 28s linear infinite; }
-.animate-marquee:hover { animation-play-state: paused; }
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-marquee {
-    animation: none;
-  }
-}
-
 /* ============ محتوى غني (محرر المقالات في لوحة التحكم + عرضها للجمهور) ============ */
 .rich-content h2 { margin: 1.4em 0 0.5em; font-size: 1.35em; font-weight: 700; line-height: 1.4; }
 .rich-content h3 { margin: 1.2em 0 0.5em; font-size: 1.15em; font-weight: 700; line-height: 1.4; }

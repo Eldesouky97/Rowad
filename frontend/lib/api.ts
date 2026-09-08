@@ -10,6 +10,8 @@ import {
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -111,6 +113,23 @@ function translateFirebaseError(err: unknown): ApiException {
     return new ApiException('رابط الموقع غير مُصرَّح به في إعدادات Firebase — أضِف نطاق الموقع في Authentication → Settings → Authorized domains', 500);
   }
   return new ApiException(message || 'حدث خطأ غير متوقع', 500);
+}
+
+// متصفحات الموبايل (خصوصًا داخل تطبيقات أو متصفحات معيّنة) بتقفل نافذة
+// signInWithPopup تلقائيًا أو بتمنعها من الأساس، فبيطلع خطأ زي
+// popup-closed-by-user حتى لو المستخدم مامسكش حاجة. الحل القياسي: لو
+// النافذة المنبثقة فشلت لأي سبب متعلّق بالنافذة نفسها (مش برفض المستخدم
+// الواعي للصلاحيات)، نرجع لـ signInWithRedirect (تنقّل كامل للصفحة بدل
+// نافذة منبثقة) اللي بيشتغل في كل المتصفحات بلا استثناء.
+const POPUP_FALLBACK_CODES = new Set([
+  'auth/popup-closed-by-user',
+  'auth/popup-blocked',
+  'auth/cancelled-popup-request',
+  'auth/operation-not-supported-in-this-environment',
+]);
+function needsRedirectFallback(err: unknown): boolean {
+  const code = (err as { code?: string })?.code || '';
+  return POPUP_FALLBACK_CODES.has(code);
 }
 
 // رابط صفحة الموقع اللي بتستقبل روابط "إعادة تعيين كلمة المرور" و"تفعيل
@@ -228,6 +247,12 @@ export const visitorSignInWithGoogle = async (): Promise<User> => {
     await recordSiteUserLogin(cred.user, 'google');
     return cred.user;
   } catch (err) {
+    if (needsRedirectFallback(err)) {
+      // بينقل المتصفح بالكامل لصفحة جوجل ويرجع تاني — onVisitorAuthChange
+      // هيلتقط تسجيل الدخول تلقائيًا لحظة رجوع الصفحة، فمفيش داعي ننتظر نتيجة هنا
+      await signInWithRedirect(auth, new GoogleAuthProvider());
+      return new Promise<User>(() => {}); // الصفحة هتتنقل قبل ما الوعد ده يتحل أصلًا
+    }
     throw translateFirebaseError(err);
   }
 };
@@ -375,15 +400,37 @@ export const adminLogin = async (email: string, password: string): Promise<{ use
   }
 };
 
+async function verifyAdminAndBuild(uid: string): Promise<{ user: AdminUser }> {
+  const snap = await get(ref(db, `admins/${uid}`));
+  if (!snap.exists()) {
+    await signOut(auth);
+    throw new ApiException('هذا الحساب غير مصرح له بالدخول للوحة التحكم', 403);
+  }
+  return { user: { id: uid, ...snap.val() } as AdminUser };
+}
+
 export const adminLoginWithGoogle = async (): Promise<{ user: AdminUser }> => {
   try {
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
-    const snap = await get(ref(db, `admins/${cred.user.uid}`));
-    if (!snap.exists()) {
-      await signOut(auth);
-      throw new ApiException('هذا الحساب غير مصرح له بالدخول للوحة التحكم', 403);
+    return await verifyAdminAndBuild(cred.user.uid);
+  } catch (err) {
+    if (err instanceof ApiException) throw err;
+    if (needsRedirectFallback(err)) {
+      await signInWithRedirect(auth, new GoogleAuthProvider());
+      return new Promise(() => {}); // الصفحة هتتنقل قبل ما الوعد ده يتحل أصلًا
     }
-    return { user: { id: cred.user.uid, ...snap.val() } as AdminUser };
+    throw translateFirebaseError(err);
+  }
+};
+
+/** بتكمل تسجيل الدخول لما الصفحة ترجع من signInWithRedirect (بديل النافذة
+ * المنبثقة على الموبايل) — لازم تتنادى عند تحميل صفحة /admin/login. بترجع
+ * null لو الصفحة اتفتحت عادي من غير ما تيجي من رحلة redirect. */
+export const completeAdminGoogleRedirect = async (): Promise<{ user: AdminUser } | null> => {
+  try {
+    const result = await getRedirectResult(auth);
+    if (!result) return null;
+    return await verifyAdminAndBuild(result.user.uid);
   } catch (err) {
     if (err instanceof ApiException) throw err;
     throw translateFirebaseError(err);

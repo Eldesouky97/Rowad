@@ -1,8 +1,8 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminLogin, adminLoginWithGoogle, sendPasswordReset, ApiException } from '@/lib/api';
+import { adminLogin, adminLoginWithGoogle, completeAdminGoogleRedirect, sendPasswordReset, ApiException } from '@/lib/api';
 import { CompassIcon } from '@/components/icons';
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -20,11 +20,26 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [forgotMode, setForgotMode] = useState(false);
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
+
+  // بيكمّل تسجيل الدخول لو الصفحة راجعة من signInWithRedirect (بديل النافذة
+  // المنبثقة على متصفحات الموبايل اللي بتقفلها تلقائيًا) — راجع lib/api.ts
+  useEffect(() => {
+    completeAdminGoogleRedirect()
+      .then((result) => {
+        if (result) router.push('/admin/dashboard');
+      })
+      .catch((err) => {
+        setError(err instanceof ApiException ? err.message : 'تعذّر تسجيل الدخول بحساب Google');
+      })
+      .finally(() => setCheckingRedirect(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleResetSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -81,7 +96,9 @@ export default function AdminLoginPage() {
           <p className="mt-1 text-sm opacity-70">للفريق الإداري لرُوَّاد المحافظات الحدودية فقط</p>
         </div>
 
-        {forgotMode ? (
+        {checkingRedirect ? (
+          <p className="text-center text-sm opacity-60">جارٍ التحقق…</p>
+        ) : forgotMode ? (
           <div>
             <p className="mb-5 text-sm opacity-70">اكتب بريدك الإلكتروني وهنبعتلك رابط إعادة تعيين كلمة المرور.</p>
             {resetSent ? (
