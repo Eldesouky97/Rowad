@@ -54,9 +54,11 @@ export async function POST(req: NextRequest) {
   }
 
   let callerUid: string;
+  let callerEmail: string | undefined;
   try {
     const decoded = await adminAuth().verifyIdToken(token);
     callerUid = decoded.uid;
+    callerEmail = decoded.email;
   } catch {
     return NextResponse.json({ message: 'جلسة غير صالحة، سجّل الدخول من جديد' }, { status: 401 });
   }
@@ -66,6 +68,7 @@ export async function POST(req: NextRequest) {
   if (callerSnap.val() !== 'super_admin') {
     return NextResponse.json({ message: 'ليس لديك صلاحية لحذف المستخدمين نهائيًا' }, { status: 403 });
   }
+  const isCallerProtected = callerEmail === PROTECTED_SUPER_ADMIN_EMAIL;
 
   const body = await req.json().catch(() => null);
   const uid = body?.uid;
@@ -76,6 +79,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'لا يمكنك حذف حسابك الخاص' }, { status: 422 });
   }
 
+  // نتأكد من وجود الحساب في Firebase Authentication نفسها (مش بس في RTDB) —
+  // عشان أي حساب موجود في الموقع فعليًا يتقدر يتحذف حتى لو ملوش سجل site_users
+  // (مثلًا حساب اتعمل ولسه ما سجّلش دخول قط).
+  let targetAuthEmail: string | null = null;
+  try {
+    const authUser = await adminAuth().getUser(uid);
+    targetAuthEmail = authUser.email || null;
+  } catch (err) {
+    const code = (err as { code?: string })?.code || '';
+    if (code !== 'auth/user-not-found') throw err;
+  }
+
   const [targetAdminSnap, targetSiteUserSnap] = await Promise.all([
     db.ref(`admins/${uid}`).get(),
     db.ref(`site_users/${uid}`).get(),
@@ -83,19 +98,21 @@ export async function POST(req: NextRequest) {
   const targetAdmin = targetAdminSnap.exists() ? (targetAdminSnap.val() as { email?: string; role?: string }) : null;
   const targetSiteUser = targetSiteUserSnap.exists() ? (targetSiteUserSnap.val() as { email?: string; photo_url?: string }) : null;
 
-  if (!targetAdmin && !targetSiteUser) {
+  if (!targetAuthEmail && !targetAdmin && !targetSiteUser) {
     return NextResponse.json({ message: 'المستخدم غير موجود' }, { status: 404 });
   }
 
-  const targetEmail = targetAdmin?.email || targetSiteUser?.email || null;
+  const targetEmail = targetAuthEmail || targetAdmin?.email || targetSiteUser?.email || null;
   if (targetEmail === PROTECTED_SUPER_ADMIN_EMAIL) {
     return NextResponse.json({ message: 'لا يمكن حذف السوبر أدمن الرئيسي' }, { status: 422 });
   }
 
-  if (targetAdmin?.role === 'super_admin') {
-    // العدّ المباشر من admins/ بدل الاعتماد على عدّاد منفصل (admin_meta/super_admin_count)
-    // ممكن ينحرف عن الواقع (مثلاً لو أول سوبر أدمن اتزرع يدويًا من غير ما يزوّد
-    // العدّاد) ويمنع حذف سوبر أدمن تاني موجود فعلًا بالغلط.
+  // السوبر أدمن الرئيسي المحمي غير قابل للحذف أو التخفيض إطلاقًا (الشرط
+  // فوق)، فوجوده مضمون دايمًا — بالتالي لو هو اللي بينفّذ عملية الحذف نفسه،
+  // قيد "منع حذف آخر Super Admin متبقٍّ" مالوش داعي يوقفه (النظام مايُقفلش
+  // أبدًا مهما حذف). القيد ده بيفضل شغّال بس لما يكون المنفّذ سوبر أدمن تاني
+  // (غير المحمي) عشان يمنعه يمسح كل باقي فريق الإدارة بالغلط.
+  if (targetAdmin?.role === 'super_admin' && !isCallerProtected) {
     const allAdminsSnap = await db.ref('admins').get();
     const allAdmins = (allAdminsSnap.val() || {}) as Record<string, { role?: string }>;
     const superAdminCount = Object.values(allAdmins).filter((a) => a.role === 'super_admin').length;
@@ -108,7 +125,7 @@ export async function POST(req: NextRequest) {
   const bookingsSnap = await db.ref('bookings').get();
   const bookingsByEvent = (bookingsSnap.val() || {}) as Record<string, Record<string, { user_id?: string }> | null>;
   const dbUpdates: Record<string, null> = {
-    [`site_users/${uid}`]: null,
+    ...(targetSiteUser ? { [`site_users/${uid}`]: null } : {}),
     ...(targetAdmin ? { [`admins/${uid}`]: null } : {}),
   };
   for (const [eventId, eventBookings] of Object.entries(bookingsByEvent)) {

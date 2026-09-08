@@ -2,112 +2,75 @@
 
 import { Fragment, FormEvent, useEffect, useMemo, useState } from 'react';
 import {
-  adminGetUsers,
-  adminGetSiteUsers,
+  adminListAllAccounts,
   adminCreateUser,
   adminUpdateUser,
   adminPromoteSiteUser,
   adminDeleteUserCompletely,
   sendAdminPasswordReset,
   ApiException,
-  PROTECTED_SUPER_ADMIN_EMAIL,
 } from '@/lib/api';
-import type { AdminUser, AdminRole, SiteUser } from '@/lib/types';
+import type { AdminRole, FirebaseAccountRow } from '@/lib/types';
 import { PlusIcon, EditIcon, KeyIcon, TrashIcon, ShieldIcon, StarIcon, EyeIcon } from '@/components/icons';
 import { ROLES, ROLE_LABELS, ROLE_TONE, inputClass, labelClass, SectionCard, Badge, EmptyState, ErrorText, StatCard, SearchBox, type Notify } from './shared';
-
-interface UnifiedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: AdminRole;
-  provider?: string;
-  last_login_at?: string;
-  isAdminRecord: boolean;
-}
-
-function mergeUsers(admins: AdminUser[], siteUsers: SiteUser[]): UnifiedUser[] {
-  const map = new Map<string, UnifiedUser>();
-  for (const s of siteUsers) {
-    map.set(s.id, {
-      id: s.id,
-      name: s.name || s.email,
-      email: s.email,
-      role: 'viewer',
-      provider: s.provider,
-      last_login_at: s.last_login_at,
-      isAdminRecord: false,
-    });
-  }
-  for (const a of admins) {
-    const existing = map.get(a.id);
-    map.set(a.id, {
-      id: a.id,
-      name: a.name,
-      email: a.email,
-      role: a.role,
-      provider: existing?.provider,
-      last_login_at: existing?.last_login_at,
-      isAdminRecord: true,
-    });
-  }
-  const roleRank: Record<AdminRole, number> = { super_admin: 0, editor: 1, viewer: 2 };
-  return Array.from(map.values()).sort((a, b) => roleRank[a.role] - roleRank[b.role] || a.name.localeCompare(b.name, 'ar'));
-}
 
 const providerLabel: Record<string, string> = { google: 'Google', password: 'بريد إلكتروني' };
 
 /**
- * "المستخدمون" — قسم موحّد واحد لكل حساب في الموقع: حسابات لوحة التحكم
- * (/admins) وزوار الموقع العاديين (/site_users) مع بعض في نفس الجدول، بدل
- * قسمين منفصلين. أي حساب مالوش دور إداري بيتعرض كـ "مشاهد" افتراضيًا — نفس
- * نظام الأدوار التلاتة (مدير عام / محرر / مشاهد) بيغطي الكل من غير تصنيف رابع.
- * تصميم متجاوب: بطاقات على الموبايل، جدول على الشاشات الأوسع.
+ * "المستخدمون" — بيسرد كل حساب موجود فعليًا في Firebase Authentication
+ * (عبر /api/admin/list-users بمفتاح Admin SDK)، مش بس اللي سبق وكتب سجل في
+ * site_users — فأي حساب اتعمل ولسه ما سجّلش دخول أو ملأش بياناته بيظهر
+ * برضه بحالة "غير مكتمل". أي حساب مالوش دور إداري بيتعرض كـ "مشاهد"
+ * افتراضيًا — نفس نظام الأدوار التلاتة (مدير عام / محرر / مشاهد) بيغطي
+ * الكل من غير تصنيف رابع. تصميم متجاوب: بطاقات على الموبايل، جدول على
+ * الشاشات الأوسع.
  */
 export default function UsersManager({ currentUserId, showToast }: { currentUserId: string; showToast: Notify }) {
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
-  const [siteUsers, setSiteUsers] = useState<SiteUser[] | null>(null);
+  const [accounts, setAccounts] = useState<FirebaseAccountRow[] | null>(null);
   const [search, setSearch] = useState('');
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [roleSubmitting, setRoleSubmitting] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  function refreshAdmins() {
-    adminGetUsers().then(setAdmins).catch(() => setAdmins([]));
+  function refresh() {
+    setLoadError(null);
+    adminListAllAccounts()
+      .then(setAccounts)
+      .catch((err) => {
+        setAccounts([]);
+        setLoadError(err instanceof ApiException ? err.message : 'تعذّر جلب قائمة الحسابات');
+      });
   }
-  function refreshSiteUsers() {
-    adminGetSiteUsers().then(setSiteUsers).catch(() => setSiteUsers([]));
-  }
-  useEffect(() => { refreshAdmins(); refreshSiteUsers(); }, []);
+  useEffect(refresh, []);
 
-  const unified = useMemo(() => mergeUsers(admins, siteUsers ?? []), [admins, siteUsers]);
-  const loading = siteUsers === null;
+  const loading = accounts === null;
 
   const filtered = useMemo(
-    () => unified.filter((u) => `${u.name} ${u.email}`.toLowerCase().includes(search.trim().toLowerCase())),
-    [unified, search]
+    () => (accounts ?? []).filter((u) => `${u.name} ${u.email}`.toLowerCase().includes(search.trim().toLowerCase())),
+    [accounts, search]
   );
 
   const counts = useMemo(() => {
     const result: Record<AdminRole, number> = { super_admin: 0, editor: 0, viewer: 0 };
-    for (const u of unified) result[u.role]++;
+    for (const u of accounts ?? []) result[u.role ?? 'viewer']++;
     return result;
-  }, [unified]);
+  }, [accounts]);
 
-  async function handleRoleChange(u: UnifiedUser, role: AdminRole) {
-    if (u.role === role && u.isAdminRecord) { setEditingRoleId(null); return; }
+  async function handleRoleChange(u: FirebaseAccountRow, role: AdminRole) {
+    if (u.role === role) { setEditingRoleId(null); return; }
     setRoleSubmitting(true);
     try {
-      if (u.isAdminRecord) {
+      if (u.role) {
         await adminUpdateUser(u.id, { role });
       } else {
         await adminPromoteSiteUser(u.id, { name: u.name, email: u.email, role });
       }
       showToast(`تم تحديث دور ${u.name} إلى ${ROLE_LABELS[role]}`);
       setEditingRoleId(null);
-      refreshAdmins();
+      refresh();
     } catch (err) {
       showToast(err instanceof ApiException ? err.message : 'تعذّر تحديث الدور');
     } finally {
@@ -124,19 +87,18 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
     }
   }
 
-  async function handleRemove(u: UnifiedUser) {
+  async function handleRemove(u: FirebaseAccountRow) {
     if (
       !confirm(
-        `حذف "${u.name}" نهائيًا؟ ده هيمسح حساب دخوله بالكامل (مش بس صلاحيات لوحة التحكم) وكل بياناته الشخصية وحجوزاته من الموقع وقاعدة البيانات — إجراء لا يمكن التراجع عنه.`
+        `حذف "${u.name}" نهائيًا؟ ده هيمسح حساب دخوله بالكامل من Firebase (مش بس صلاحيات لوحة التحكم) وكل بياناته الشخصية وحجوزاته — إجراء لا يمكن التراجع عنه.`
       )
     ) {
       return;
     }
     try {
       await adminDeleteUserCompletely(u.id);
-      showToast('تم حذف الحساب وكل بياناته نهائيًا');
-      refreshAdmins();
-      setSiteUsers((prev) => (prev ?? []).filter((x) => x.id !== u.id));
+      showToast('تم حذف الحساب وكل بياناته نهائيًا من Firebase');
+      setAccounts((prev) => (prev ?? []).filter((x) => x.id !== u.id));
     } catch (err) {
       showToast(err instanceof ApiException ? err.message : 'تعذّر حذف الحساب');
     }
@@ -161,7 +123,7 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
       await adminCreateUser(payload);
       showToast('تم إضافة المستخدم');
       setShowCreateForm(false);
-      refreshAdmins();
+      refresh();
     } catch (err) {
       setCreateError(err instanceof ApiException ? err.message : 'تعذّر إضافة المستخدم');
     } finally {
@@ -179,7 +141,7 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
 
       <SectionCard
         title="المستخدمون"
-        description={loading ? undefined : `${unified.length} حساب مسجّل في الموقع`}
+        description={loading ? undefined : `${(accounts ?? []).length} حساب في Firebase`}
         action={
           <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
             <SearchBox value={search} onChange={setSearch} placeholder="ابحث بالاسم أو البريد…" />
@@ -222,6 +184,8 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
           </form>
         )}
 
+        {loadError && <ErrorText message={loadError} />}
+
         {loading ? (
           <p className="py-6 text-center text-sm text-ink/45">جارٍ التحميل…</p>
         ) : filtered.length === 0 ? (
@@ -234,8 +198,7 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
                 <UserCard
                   key={u.id}
                   user={u}
-                  locked={u.id === currentUserId || u.email === PROTECTED_SUPER_ADMIN_EMAIL}
-                  isProtected={u.email === PROTECTED_SUPER_ADMIN_EMAIL}
+                  locked={u.id === currentUserId || u.is_protected}
                   editing={editingRoleId === u.id}
                   submitting={roleSubmitting}
                   onToggleEdit={() => setEditingRoleId(editingRoleId === u.id ? null : u.id)}
@@ -248,13 +211,14 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
 
             {/* جدول للشاشات الأوسع */}
             <div className="hidden overflow-x-auto sm:block">
-              <table className="w-full min-w-[720px] border-collapse text-sm">
+              <table className="w-full min-w-[760px] border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-ink/10 text-right text-xs font-bold text-ink/45">
                     <th className="py-2.5 pl-4">الاسم</th>
                     <th className="py-2.5 pl-4">البريد</th>
                     <th className="py-2.5 pl-4">طريقة الدخول</th>
                     <th className="py-2.5 pl-4">الدور</th>
+                    <th className="py-2.5 pl-4">حالة البيانات</th>
                     <th className="py-2.5 pl-4">آخر دخول</th>
                     <th className="py-2.5"></th>
                   </tr>
@@ -262,8 +226,7 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
                 <tbody>
                   {filtered.map((u) => {
                     const isSelf = u.id === currentUserId;
-                    const isProtected = u.email === PROTECTED_SUPER_ADMIN_EMAIL;
-                    const locked = isSelf || isProtected;
+                    const locked = isSelf || u.is_protected;
                     return (
                       <Fragment key={u.id}>
                         <tr className="border-b border-ink/5 transition hover:bg-sand/30 last:border-0">
@@ -274,11 +237,14 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
                           </td>
                           <td className="py-3 pl-4">
                             <div className="flex flex-wrap items-center gap-1.5">
-                              <Badge tone={ROLE_TONE[u.role]}>{ROLE_LABELS[u.role]}</Badge>
-                              {isProtected && (
+                              <Badge tone={ROLE_TONE[u.role ?? 'viewer']}>{ROLE_LABELS[u.role ?? 'viewer']}</Badge>
+                              {u.is_protected && (
                                 <Badge tone="violet"><ShieldIcon className="ml-1 inline h-3 w-3" />محمي</Badge>
                               )}
                             </div>
+                          </td>
+                          <td className="py-3 pl-4">
+                            <Badge tone={u.profile_completed ? 'success' : 'warning'}>{u.profile_completed ? 'مكتمل' : 'غير مكتمل'}</Badge>
                           </td>
                           <td className="py-3 pl-4 text-ink/60">
                             {u.last_login_at ? new Date(u.last_login_at).toLocaleString('ar-EG') : '—'}
@@ -311,7 +277,7 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
                         </tr>
                         {editingRoleId === u.id && (
                           <tr className="border-b border-ink/5 bg-sand/40 last:border-0">
-                            <td colSpan={6} className="p-4">
+                            <td colSpan={7} className="p-4">
                               <RoleInlineForm
                                 user={u}
                                 submitting={roleSubmitting}
@@ -340,12 +306,12 @@ function RoleInlineForm({
   onCancel,
   onConfirm,
 }: {
-  user: UnifiedUser;
+  user: FirebaseAccountRow;
   submitting: boolean;
   onCancel: () => void;
   onConfirm: (role: AdminRole) => void;
 }) {
-  const [role, setRole] = useState<AdminRole>(user.role);
+  const [role, setRole] = useState<AdminRole>(user.role ?? 'viewer');
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -368,7 +334,6 @@ function RoleInlineForm({
 function UserCard({
   user,
   locked,
-  isProtected,
   editing,
   submitting,
   onToggleEdit,
@@ -376,9 +341,8 @@ function UserCard({
   onResetPassword,
   onRemove,
 }: {
-  user: UnifiedUser;
+  user: FirebaseAccountRow;
   locked: boolean;
-  isProtected: boolean;
   editing: boolean;
   submitting: boolean;
   onToggleEdit: () => void;
@@ -394,13 +358,14 @@ function UserCard({
           <p className="truncate text-xs text-ink/55">{user.email}</p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-          <Badge tone={ROLE_TONE[user.role]}>{ROLE_LABELS[user.role]}</Badge>
-          {isProtected && <Badge tone="violet"><ShieldIcon className="ml-1 inline h-3 w-3" />محمي</Badge>}
+          <Badge tone={ROLE_TONE[user.role ?? 'viewer']}>{ROLE_LABELS[user.role ?? 'viewer']}</Badge>
+          {user.is_protected && <Badge tone="violet"><ShieldIcon className="ml-1 inline h-3 w-3" />محمي</Badge>}
         </div>
       </div>
 
-      <div className="mt-3 flex items-center gap-2 text-xs text-ink/50">
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink/50">
         <Badge tone="neutral">{providerLabel[user.provider || ''] || user.provider || '—'}</Badge>
+        <Badge tone={user.profile_completed ? 'success' : 'warning'}>{user.profile_completed ? 'مكتمل' : 'غير مكتمل'}</Badge>
         <span>{user.last_login_at ? new Date(user.last_login_at).toLocaleString('ar-EG') : 'لم يسجّل دخول بعد'}</span>
       </div>
 

@@ -165,6 +165,22 @@ export interface AdminUser {
   role: AdminRole;
 }
 
+/** صف حساب واحد زي ما بيرجعه /api/admin/list-users — كل حساب موجود فعليًا في
+ * Firebase Authentication (مش بس اللي كتب سجل site_users). */
+export interface FirebaseAccountRow {
+  id: string;
+  name: string;
+  email: string;
+  role: AdminRole | null;
+  provider: string | null;
+  /** true لو الزائر ملأ نموذج إكمال البيانات الإجباري — وإلا الحساب "غير مكتمل" */
+  profile_completed: boolean;
+  has_site_user_record: boolean;
+  created_at: string | null;
+  last_login_at: string | null;
+  is_protected: boolean;
+}
+
 export interface AdminUserPayload {
   name: string;
   email: string;

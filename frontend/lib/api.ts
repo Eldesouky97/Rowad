@@ -40,7 +40,7 @@ import type {
   AdminUser,
   AdminUserPayload,
   AdminRole,
-  SiteUser,
+  FirebaseAccountRow,
   Program,
   Governorate,
   SuccessStory,
@@ -1109,9 +1109,17 @@ async function countSuperAdmins(): Promise<number> {
   return objectToArray<AdminUser>(snap.val()).filter((a) => a.role === 'super_admin').length;
 }
 
-export const adminGetUsers = async (): Promise<AdminUser[]> => {
-  const snap = await get(ref(db, 'admins'));
-  return objectToArray<AdminUser>(snap.val());
+/** بيسرد كل حساب موجود فعليًا في Firebase Authentication (عبر Admin SDK،
+ * راجع app/api/admin/list-users) — مش بس اللي كتب سجل site_users. */
+export const adminListAllAccounts = async (): Promise<FirebaseAccountRow[]> => {
+  const headers = await authHeader();
+  const res = await fetch('/api/admin/list-users', { headers });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ message: 'تعذّر جلب قائمة الحسابات' }));
+    throw new ApiException(body.message || 'تعذّر جلب قائمة الحسابات', res.status);
+  }
+  const body = (await res.json()) as { users: FirebaseAccountRow[] };
+  return body.users;
 };
 
 export const adminCreateUser = async (payload: AdminUserPayload): Promise<AdminUser> => {
@@ -1145,7 +1153,11 @@ export const adminUpdateUser = async (uid: string, payload: Partial<AdminUserPay
     if (current.email === PROTECTED_SUPER_ADMIN_EMAIL) {
       throw new ApiException('لا يمكن تغيير دور السوبر أدمن الرئيسي', 422);
     }
-    if ((await countSuperAdmins()) <= 1) {
+    // السوبر أدمن الرئيسي المحمي وجوده مضمون دايمًا (غير قابل للحذف أو
+    // التخفيض)، فلو هو اللي بينفّذ التخفيض، قيد "آخر سوبر أدمن متبقٍّ"
+    // مالوش داعي يوقفه — النظام مايُقفلش أبدًا مهما عمل.
+    const isCallerProtected = auth.currentUser?.email === PROTECTED_SUPER_ADMIN_EMAIL;
+    if (!isCallerProtected && (await countSuperAdmins()) <= 1) {
       throw new ApiException('لا يمكن تغيير دور آخر Super Admin متبقٍّ', 422);
     }
   }
@@ -1156,26 +1168,6 @@ export const adminUpdateUser = async (uid: string, payload: Partial<AdminUserPay
 
   try {
     await update(ref(db, `admins/${uid}`), updates);
-  } catch (err) {
-    throw translateFirebaseError(err);
-  }
-};
-
-export const adminDeleteUser = async (uid: string): Promise<void> => {
-  if (auth.currentUser?.uid === uid) {
-    throw new ApiException('لا يمكنك حذف حسابك الخاص', 422);
-  }
-  const snap = await get(ref(db, `admins/${uid}`));
-  const target = snap.val() as AdminUser | null;
-  if (!target) throw new ApiException('المستخدم غير موجود', 404);
-  if (target.email === PROTECTED_SUPER_ADMIN_EMAIL) {
-    throw new ApiException('لا يمكن حذف السوبر أدمن الرئيسي', 422);
-  }
-  if (target.role === 'super_admin' && (await countSuperAdmins()) <= 1) {
-    throw new ApiException('لا يمكن حذف آخر Super Admin متبقٍّ', 422);
-  }
-  try {
-    await remove(ref(db, `admins/${uid}`));
   } catch (err) {
     throw translateFirebaseError(err);
   }
@@ -1222,14 +1214,6 @@ export const confirmEmailVerificationLink = async (oobCode: string): Promise<voi
   }
 };
 
-/* ============ Admin: كل المستخدمين المسجلين في الموقع (زوار عاديون) ============ */
-export const adminGetSiteUsers = async (): Promise<SiteUser[]> => {
-  const snap = await get(ref(db, 'site_users'));
-  return objectToArray<SiteUser>(snap.val()).sort(
-    (a, b) => new Date(b.last_login_at || 0).getTime() - new Date(a.last_login_at || 0).getTime()
-  );
-};
-
 // يمنح زائر موجود بالفعل صلاحية أدمن مباشرة على نفس حساب Firebase Auth بتاعه
 // (بعكس adminCreateUser اللي بيعمل حساب Auth جديد بالكامل) — مفيد لترقية زائر
 // اتسجل بجوجل أو بالبريد لدور إداري من غير ما يحتاج حساب تاني.
@@ -1240,17 +1224,6 @@ export const adminPromoteSiteUser = async (uid: string, payload: { name: string;
   }
   try {
     await set(ref(db, `admins/${uid}`), payload);
-  } catch (err) {
-    throw translateFirebaseError(err);
-  }
-};
-
-// بيشيل بروفايل الزائر من /site_users بس — حساب Firebase Auth بتاعه بيفضل
-// شغال (مفيش طريقة نحذفه فعليًا من غير Admin SDK)، فهيظهر تاني لو سجّل دخول.
-// استخدم adminDeleteUserCompletely لحذف حقيقي شامل بما فيه حساب المصادقة.
-export const adminDeleteSiteUser = async (uid: string): Promise<void> => {
-  try {
-    await remove(ref(db, `site_users/${uid}`));
   } catch (err) {
     throw translateFirebaseError(err);
   }
