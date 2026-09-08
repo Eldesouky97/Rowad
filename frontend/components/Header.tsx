@@ -59,8 +59,8 @@ export default function Header() {
         </Link>
 
         <nav
-          className={`fixed inset-x-0 top-[76px] z-[100] flex h-[calc(100vh-76px)] flex-col items-stretch gap-0 overflow-y-auto bg-night px-5 py-4 transition-transform duration-300 lg:static lg:h-auto lg:flex-row lg:items-center lg:gap-1 lg:bg-transparent lg:p-0 lg:transition-none ${
-            open ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+          className={`fixed inset-x-0 top-[76px] z-[100] flex h-[calc(100vh-76px)] flex-col items-stretch gap-0 overflow-y-auto bg-night px-5 py-4 transition-transform duration-300 xl:static xl:h-auto xl:flex-row xl:items-center xl:gap-0.5 xl:bg-transparent xl:p-0 xl:transition-none ${
+            open ? 'translate-x-0' : 'translate-x-full xl:translate-x-0'
           }`}
         >
           {LINKS.map((link) => {
@@ -70,31 +70,35 @@ export default function Header() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className={`relative rounded-lg px-4 py-4 font-utility text-[15px] font-semibold border-b border-gold/10 transition-colors lg:border-none lg:py-2.5 lg:text-sm ${
+                className={`relative shrink-0 whitespace-nowrap rounded-lg px-4 py-4 font-utility text-[15px] font-semibold border-b border-gold/10 transition-colors xl:border-none xl:px-3 xl:py-2.5 xl:text-[13px] ${
                   active ? 'text-gold-2' : 'text-cream/75 hover:text-cream'
                 }`}
               >
                 {link.label}
                 {active && (
-                  <span className="absolute inset-x-4 -bottom-[1px] hidden h-0.5 rounded bg-gold-2 lg:block" />
+                  <span className="absolute inset-x-3 -bottom-[1px] hidden h-0.5 rounded bg-gold-2 xl:block" />
                 )}
               </Link>
             );
           })}
-          <Link
-            href="/contact"
-            onClick={() => setOpen(false)}
-            className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-violet-600 px-6 py-3 font-utility text-sm font-bold text-white transition hover:bg-violet-700 lg:mt-0 lg:mr-2"
-          >
-            <HandsIcon className="h-4 w-4" />
-            انضم كمتطوع
-          </Link>
+
+          {/* زرار "انضم كمتطوع" لغير المسجّلين بس — عضو مسجّل دخوله بالفعل عضو، مش محتاج دعوة انضمام */}
+          {!loading && !authUser && (
+            <Link
+              href="/contact"
+              onClick={() => setOpen(false)}
+              className="mt-4 inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-violet-600 px-6 py-3 font-utility text-sm font-bold text-white transition hover:bg-violet-700 xl:mt-0 xl:mr-2 xl:px-5 xl:py-2"
+            >
+              <HandsIcon className="h-4 w-4" />
+              انضم كمتطوع
+            </Link>
+          )}
 
           {!loading && (
             authUser ? (
               <>
                 {/* سطح المكتب: قائمة منسدلة مدمجة */}
-                <div className="mt-4 hidden lg:mt-0 lg:mr-2 lg:block">
+                <div className="mt-4 hidden shrink-0 xl:mt-0 xl:mr-1 xl:block">
                   <AccountMenu
                     name={displayName}
                     email={authUser.email}
@@ -105,7 +109,7 @@ export default function Header() {
                 </div>
 
                 {/* الموبايل: بطاقة حساب موسّعة داخل القائمة المنسدلة كاملة الشاشة */}
-                <div className="mt-4 rounded-2xl border border-gold/15 bg-white/5 p-4 lg:hidden">
+                <div className="mt-4 rounded-2xl border border-gold/15 bg-white/5 p-4 xl:hidden">
                   <div className="flex items-center gap-3 border-b border-gold/10 pb-3.5">
                     <UserAvatar src={photoUrl} name={displayName} size="md" />
                     <div className="min-w-0">
@@ -143,7 +147,7 @@ export default function Header() {
               <Link
                 href="/login"
                 onClick={() => setOpen(false)}
-                className="mt-2 inline-flex items-center justify-center rounded-full border border-gold/30 px-6 py-3 font-utility text-sm font-bold text-cream/75 transition hover:text-cream lg:mt-0 lg:mr-2 lg:border-none lg:px-3"
+                className="mt-2 inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full border border-gold/30 px-6 py-3 font-utility text-sm font-bold text-cream/75 transition hover:text-cream xl:mt-0 xl:mr-1 xl:border-none xl:px-3"
               >
                 تسجيل الدخول
               </Link>
@@ -155,7 +159,7 @@ export default function Header() {
           aria-label={open ? 'إغلاق القائمة' : 'فتح القائمة'}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center justify-center rounded-lg border border-gold/40 p-2 text-cream lg:hidden"
+          className="flex items-center justify-center rounded-lg border border-gold/40 p-2 text-cream xl:hidden"
         >
           {open ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
         </button>
