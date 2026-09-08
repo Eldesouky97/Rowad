@@ -7,3 +7,8 @@ Thumbs.db
 # مفاتيح خدمة Firebase Admin (صلاحيات كاملة على المشروع) — لازم تفضل محلية فقط
 *firebase-adminsdk*.json
 *serviceAccountKey*.json
+
+# ملف تجميع كل أسرار البيئة (لاستيرادها في Vercel) — محلي بس، ميترفعش أبدًا
+.env
+.env.*
+!.env.local.example
