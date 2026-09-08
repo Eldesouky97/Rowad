@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import type { EventItem } from '@/lib/types';
 import { CalendarIcon, PinIcon, SeatIcon, CheckIcon } from './icons';
 
@@ -10,14 +11,29 @@ const ART_BG: Record<string, string> = {
   'art-4': 'bg-gradient-to-br from-night-3 to-night',
 };
 
+/** لو فيه رابط محافظة مرتبطة، بيلف المحتوى في Link بدون ما يكسر تخطيط الـ flex/gap
+ * (className="contents" بيخلي الـ <a> نفسه مايبقاش صندوق تخطيط، وأولاده بيتصرفوا
+ * كأنهم أبناء مباشرين لعنصر الـ flex الأب) — وإلا بيرجّع المحتوى زي ما هو من غير لف */
+function CardInfo({ governorateHref, children }: { governorateHref?: string; children: React.ReactNode }) {
+  if (!governorateHref) return <>{children}</>;
+  return (
+    <Link href={governorateHref} className="contents">
+      {children}
+    </Link>
+  );
+}
+
 export default function EventCard({
   event,
   booked,
   onBook,
+  governorateHref,
 }: {
   event: EventItem;
   booked?: boolean;
   onBook?: (event: EventItem) => void;
+  /** رابط صفحة المحافظة المرتبطة بالفعالية — لو موجود، عنوان الفعالية وبياناتها تبقى قابلة للنقر */
+  governorateHref?: string;
 }) {
   const pct = Math.min(100, Math.round((event.seats_taken / event.seats_total) * 100));
   const full = event.seats_taken >= event.seats_total;
@@ -45,25 +61,29 @@ export default function EventCard({
         </div>
       )}
       <div className="flex flex-1 flex-col gap-3 p-6">
-        <div className="flex items-center justify-between gap-2">
-          <span
-            className={`rounded-full px-2.5 py-1 font-utility text-[11px] font-bold ${
-              event.status === 'upcoming' ? 'bg-sea/10 text-sea' : 'bg-[#6b5f4c]/15 text-[#6b5f4c]'
-            }`}
-          >
-            {event.status === 'upcoming' ? 'قادمة' : 'منتهية'}
-          </span>
-          <span className="rounded-full bg-sea/10 px-3 py-1 font-utility text-[11px] font-bold text-sea">
-            {event.category}
-          </span>
-        </div>
-        <h3 className="font-display text-lg leading-snug transition-colors group-hover:text-violet-700">{event.title}</h3>
-        <div className="flex flex-wrap gap-3 font-utility text-xs text-[#6b5f4c]">
-          <span className="flex items-center gap-1"><CalendarIcon className="h-3.5 w-3.5" /> {dateLabel}</span>
-          <span className="flex items-center gap-1"><PinIcon className="h-3.5 w-3.5" /> {event.location}</span>
-        </div>
-        <p className="flex-1 text-sm opacity-85">{event.description}</p>
-        {event.author && <p className="text-[11px] font-bold text-[#6b5f4c]">بقلم: {event.author}</p>}
+        <CardInfo governorateHref={governorateHref}>
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={`rounded-full px-2.5 py-1 font-utility text-[11px] font-bold ${
+                event.status === 'upcoming' ? 'bg-sea/10 text-sea' : 'bg-[#6b5f4c]/15 text-[#6b5f4c]'
+              }`}
+            >
+              {event.status === 'upcoming' ? 'قادمة' : 'منتهية'}
+            </span>
+            <span className="rounded-full bg-sea/10 px-3 py-1 font-utility text-[11px] font-bold text-sea">
+              {event.category}
+            </span>
+          </div>
+          <h3 className="font-display text-lg leading-snug transition-colors group-hover:text-violet-700">{event.title}</h3>
+          <div className="flex flex-wrap gap-3 font-utility text-xs text-[#6b5f4c]">
+            <span className="flex items-center gap-1"><CalendarIcon className="h-3.5 w-3.5" /> {dateLabel}</span>
+            <span className={`flex items-center gap-1 ${governorateHref ? 'underline decoration-dotted underline-offset-2' : ''}`}>
+              <PinIcon className="h-3.5 w-3.5" /> {event.location}
+            </span>
+          </div>
+          <p className="flex-1 text-sm opacity-85">{event.description}</p>
+          {event.author && <p className="text-[11px] font-bold text-[#6b5f4c]">بقلم: {event.author}</p>}
+        </CardInfo>
         <div>
           <div className="h-1.5 overflow-hidden rounded-full bg-rust/15">
             <div className="h-full rounded-full bg-sea" style={{ width: `${pct}%` }} />

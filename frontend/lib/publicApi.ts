@@ -86,6 +86,15 @@ export const getGovernorates = async (): Promise<Governorate[]> => {
     .sort((a, b) => a.order - b.order) as Governorate[];
 };
 
+export const getGovernorate = async (slug: string): Promise<Governorate> => {
+  const raw = await restGet<Record<string, Governorate>>('governorates');
+  const found = objectToArray(raw)
+    .filter((g) => g.is_published)
+    .find((g) => g.slug === slug);
+  if (!found) throw new ApiException('المحافظة غير موجودة', 404);
+  return found as Governorate;
+};
+
 export const getSuccessStories = async (): Promise<SuccessStory[]> => {
   const raw = await restGet<Record<string, SuccessStory>>('success_stories');
   return objectToArray(raw)

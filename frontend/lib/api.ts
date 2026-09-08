@@ -53,6 +53,7 @@ export {
   sendContactMessage,
   getPrograms,
   getGovernorates,
+  getGovernorate,
   getSuccessStories,
   getGallery,
   getGalleryAlbums,

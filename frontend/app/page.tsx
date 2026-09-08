@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import EventCard from '@/components/EventCard';
 import ArticleCard from '@/components/ArticleCard';
@@ -113,6 +113,17 @@ function AlbumCoverCard({
   );
 }
 
+/** بيلف محتوى الكارت في Link (بدون كسر تخطيط الـ flex/gap الخاص بالأب) لو فيه رابط
+ * محافظة مرتبطة، وإلا بيرجّع المحتوى زي ما هو — أساس ترابط قصص النجاح بصفحة المحافظة */
+function CardLink({ href, children }: { href: string | null; children: React.ReactNode }) {
+  if (!href) return <>{children}</>;
+  return (
+    <Link href={href} className="contents">
+      {children}
+    </Link>
+  );
+}
+
 const PROGRAM_ICONS: Record<string, (p: { className?: string }) => JSX.Element> = {
   التعليم: BookIcon,
   السياحة: CompassIcon,
@@ -152,6 +163,13 @@ export default function HomePage() {
 
   // section مخفي بس لو الأدمن عطّله صراحة من إعدادات الموقع (undefined = ظاهر افتراضيًا)
   const isVisible = (key: keyof SectionsVisibility) => sectionsVisibility[key] !== false;
+
+  // خريطة اسم المحافظة → رابط صفحتها — أساس الترابط بين الفعاليات وقصص النجاح وصفحة المحافظة
+  const govSlugByName = useMemo(() => {
+    const map: Record<string, string> = {};
+    governorates.forEach((g) => { map[g.name] = g.slug; });
+    return map;
+  }, [governorates]);
 
   const galleryAlbumGroups = galleryAlbums
     .map((album) => ({ album, images: gallery.filter((g) => g.album_id === album.id) }))
@@ -419,7 +437,13 @@ export default function HomePage() {
           </Reveal>
           <Reveal variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((ev) => (
-              <EventCard key={ev.id} event={ev} booked={bookedIds.includes(ev.id)} onBook={setBookingEvent} />
+              <EventCard
+                key={ev.id}
+                event={ev}
+                booked={bookedIds.includes(ev.id)}
+                onBook={setBookingEvent}
+                governorateHref={govSlugByName[ev.governorate] ? `/governorates/${govSlugByName[ev.governorate]}` : undefined}
+              />
             ))}
           </Reveal>
           <div className="mt-10 text-center">
@@ -440,11 +464,14 @@ export default function HomePage() {
             <h2 className="font-display text-3xl">استمع إلى قصص شباب استفادوا من برامجنا</h2>
           </Reveal>
           <Reveal variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {stories.map((s) => (
+            {stories.map((s) => {
+              const storyHref = s.governorate && govSlugByName[s.governorate] ? `/governorates/${govSlugByName[s.governorate]}` : null;
+              return (
               <div
                 key={s.id}
                 className="group flex flex-col overflow-hidden rounded-[18px] border border-gold/25 bg-white shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
               >
+                <CardLink href={storyHref}>
                 {s.image_url ? (
                   <div className="relative h-40 w-full overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -480,8 +507,10 @@ export default function HomePage() {
                     <p className="mt-3 text-[11px] font-bold text-rust/70">بقلم: {s.author}</p>
                   )}
                 </div>
+                </CardLink>
               </div>
-            ))}
+              );
+            })}
           </Reveal>
         </div>
       </section>
@@ -562,8 +591,9 @@ export default function HomePage() {
           </Reveal>
           <Reveal variant="stagger" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {governorates.map((g) => (
-              <div
+              <Link
                 key={g.id}
+                href={`/governorates/${g.slug}`}
                 className="group overflow-hidden rounded-[18px] border border-gold/25 bg-white shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
               >
                 {g.image_url ? (
@@ -617,8 +647,11 @@ export default function HomePage() {
                   {g.author && (
                     <p className="mt-3 text-[11px] font-bold text-rust/70">بقلم: {g.author}</p>
                   )}
+                  <span className="mt-4 flex items-center gap-1.5 font-utility text-xs font-bold text-violet-700">
+                    استكشف كل ما يخص المحافظة <ArrowIcon className="h-3.5 w-3.5 rotate-180 transition-transform group-hover:-translate-x-1" />
+                  </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </Reveal>
         </div>
