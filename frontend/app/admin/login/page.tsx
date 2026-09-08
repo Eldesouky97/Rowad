@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminLogin, adminLoginWithGoogle, ApiException } from '@/lib/api';
+import { adminLogin, adminLoginWithGoogle, sendPasswordReset, ApiException } from '@/lib/api';
 import { CompassIcon } from '@/components/icons';
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -21,6 +21,25 @@ export default function AdminLoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  async function handleResetSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setResetError(null);
+    const email = String(new FormData(e.currentTarget).get('email') || '').trim();
+    setResetSubmitting(true);
+    try {
+      await sendPasswordReset(email);
+      setResetSent(true);
+    } catch (err) {
+      setResetError(err instanceof ApiException ? err.message : 'تعذّر إرسال رابط إعادة التعيين');
+    } finally {
+      setResetSubmitting(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,37 +81,75 @@ export default function AdminLoginPage() {
           <p className="mt-1 text-sm opacity-70">للفريق الإداري لرُوَّاد المحافظات الحدودية فقط</p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          disabled={googleSubmitting || submitting}
-          className="mb-5 flex w-full items-center justify-center gap-2.5 rounded-full border border-gold/30 bg-white px-4 py-3 text-sm font-bold transition hover:bg-sand disabled:opacity-60"
-        >
-          <GoogleIcon /> {googleSubmitting ? 'جارٍ الدخول…' : 'الدخول بحساب Google'}
-        </button>
-
-        <div className="mb-5 flex items-center gap-3 text-xs text-ink/40">
-          <span className="h-px flex-1 bg-gold/25" /> أو <span className="h-px flex-1 bg-gold/25" />
-        </div>
-
-        <form onSubmit={handleSubmit} className="grid gap-4">
+        {forgotMode ? (
           <div>
-            <label className="mb-1.5 block font-utility text-sm font-bold">البريد الإلكتروني</label>
-            <input name="email" type="email" required className="w-full rounded-lg border border-gold/40 px-3 py-3 text-sm" />
+            <p className="mb-5 text-sm opacity-70">اكتب بريدك الإلكتروني وهنبعتلك رابط إعادة تعيين كلمة المرور.</p>
+            {resetSent ? (
+              <p className="text-sm text-emerald-600">تم إرسال رابط إعادة التعيين، تحقّق من بريدك الإلكتروني.</p>
+            ) : (
+              <form onSubmit={handleResetSubmit} className="grid gap-4">
+                <div>
+                  <label className="mb-1.5 block font-utility text-sm font-bold">البريد الإلكتروني</label>
+                  <input name="email" type="email" required className="w-full rounded-lg border border-gold/40 px-3 py-3 text-sm" />
+                </div>
+                {resetError && <p className="text-sm text-[#e08a6b]">{resetError}</p>}
+                <button
+                  type="submit"
+                  disabled={resetSubmitting}
+                  className="w-full rounded-full bg-night px-4 py-3 font-utility text-sm font-bold text-cream transition hover:bg-night-2 disabled:opacity-60"
+                >
+                  {resetSubmitting ? 'جارٍ الإرسال…' : 'إرسال رابط إعادة التعيين'}
+                </button>
+              </form>
+            )}
+            <button
+              type="button"
+              onClick={() => { setForgotMode(false); setResetSent(false); setResetError(null); }}
+              className="mt-4 text-sm font-bold text-rust hover:underline"
+            >
+              العودة لتسجيل الدخول
+            </button>
           </div>
-          <div>
-            <label className="mb-1.5 block font-utility text-sm font-bold">كلمة المرور</label>
-            <input name="password" type="password" required className="w-full rounded-lg border border-gold/40 px-3 py-3 text-sm" />
-          </div>
-          {error && <p className="text-sm text-[#e08a6b]">{error}</p>}
-          <button
-            type="submit"
-            disabled={submitting || googleSubmitting}
-            className="mt-1 w-full rounded-full bg-night px-4 py-3 font-utility text-sm font-bold text-cream transition hover:bg-night-2 disabled:opacity-60"
-          >
-            {submitting ? 'جارٍ الدخول…' : 'تسجيل الدخول'}
-          </button>
-        </form>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={googleSubmitting || submitting}
+              className="mb-5 flex w-full items-center justify-center gap-2.5 rounded-full border border-gold/30 bg-white px-4 py-3 text-sm font-bold transition hover:bg-sand disabled:opacity-60"
+            >
+              <GoogleIcon /> {googleSubmitting ? 'جارٍ الدخول…' : 'الدخول بحساب Google'}
+            </button>
+
+            <div className="mb-5 flex items-center gap-3 text-xs text-ink/40">
+              <span className="h-px flex-1 bg-gold/25" /> أو <span className="h-px flex-1 bg-gold/25" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="grid gap-4">
+              <div>
+                <label className="mb-1.5 block font-utility text-sm font-bold">البريد الإلكتروني</label>
+                <input name="email" type="email" required className="w-full rounded-lg border border-gold/40 px-3 py-3 text-sm" />
+              </div>
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="block font-utility text-sm font-bold">كلمة المرور</label>
+                  <button type="button" onClick={() => setForgotMode(true)} className="font-utility text-xs font-bold text-rust hover:underline">
+                    نسيت كلمة المرور؟
+                  </button>
+                </div>
+                <input name="password" type="password" required className="w-full rounded-lg border border-gold/40 px-3 py-3 text-sm" />
+              </div>
+              {error && <p className="text-sm text-[#e08a6b]">{error}</p>}
+              <button
+                type="submit"
+                disabled={submitting || googleSubmitting}
+                className="mt-1 w-full rounded-full bg-night px-4 py-3 font-utility text-sm font-bold text-cream transition hover:bg-night-2 disabled:opacity-60"
+              >
+                {submitting ? 'جارٍ الدخول…' : 'تسجيل الدخول'}
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </section>
   );

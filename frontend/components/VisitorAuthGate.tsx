@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { visitorSignIn, visitorSignInWithGoogle, ApiException } from '@/lib/api';
+import { visitorSignIn, visitorSignInWithGoogle, sendPasswordReset, ApiException } from '@/lib/api';
 
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -29,6 +29,25 @@ export default function VisitorAuthGate({
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  async function handleResetSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setResetError(null);
+    const email = String(new FormData(e.currentTarget).get('email') || '').trim();
+    setResetSubmitting(true);
+    try {
+      await sendPasswordReset(email);
+      setResetSent(true);
+    } catch (err) {
+      setResetError(err instanceof ApiException ? err.message : 'تعذّر إرسال رابط إعادة التعيين');
+    } finally {
+      setResetSubmitting(false);
+    }
+  }
 
   async function handleGoogle() {
     setError(null);
@@ -61,6 +80,42 @@ export default function VisitorAuthGate({
     }
   }
 
+  if (forgotMode) {
+    return (
+      <div>
+        <h3 className="font-display text-xl">نسيت كلمة المرور؟</h3>
+        <p className="mb-6 mt-1 text-sm opacity-70">اكتب بريدك الإلكتروني وهنبعتلك رابط إعادة تعيين كلمة المرور.</p>
+
+        {resetSent ? (
+          <p className="text-sm text-emerald-600">تم إرسال رابط إعادة التعيين، تحقّق من بريدك الإلكتروني.</p>
+        ) : (
+          <form onSubmit={handleResetSubmit} className="grid gap-4">
+            <div>
+              <label className="mb-1.5 block font-utility text-sm font-bold">البريد الإلكتروني</label>
+              <input name="email" type="email" required className="w-full rounded-lg border border-gold/40 bg-white px-3 py-3 text-sm" />
+            </div>
+            {resetError && <p className="text-sm text-[#e08a6b]">{resetError}</p>}
+            <button
+              type="submit"
+              disabled={resetSubmitting}
+              className="w-full rounded-full bg-violet-600 px-4 py-3 font-utility font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
+            >
+              {resetSubmitting ? 'جارٍ الإرسال…' : 'إرسال رابط إعادة التعيين'}
+            </button>
+          </form>
+        )}
+
+        <button
+          type="button"
+          onClick={() => { setForgotMode(false); setResetSent(false); setResetError(null); }}
+          className="mt-4 text-sm font-bold text-rust hover:underline"
+        >
+          العودة لتسجيل الدخول
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
       {showHeading && (
@@ -89,7 +144,12 @@ export default function VisitorAuthGate({
           <input name="email" type="email" required className="w-full rounded-lg border border-gold/40 bg-white px-3 py-3 text-sm" />
         </div>
         <div>
-          <label className="mb-1.5 block font-utility text-sm font-bold">كلمة المرور</label>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="block font-utility text-sm font-bold">كلمة المرور</label>
+            <button type="button" onClick={() => setForgotMode(true)} className="font-utility text-xs font-bold text-rust hover:underline">
+              نسيت كلمة المرور؟
+            </button>
+          </div>
           <input name="password" type="password" required minLength={8} className="w-full rounded-lg border border-gold/40 bg-white px-3 py-3 text-sm" />
         </div>
         {error && <p className="text-sm text-[#e08a6b]">{error}</p>}

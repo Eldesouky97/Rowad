@@ -13,6 +13,10 @@ import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  confirmPasswordReset,
+  verifyPasswordResetCode,
+  sendEmailVerification,
+  applyActionCode,
   signOut,
   onAuthStateChanged,
   updateProfile,
@@ -21,6 +25,7 @@ import {
   reauthenticateWithCredential,
   linkWithCredential,
   EmailAuthProvider,
+  type ActionCodeSettings,
   type User,
 } from 'firebase/auth';
 import { auth, db, getSecondaryAuth } from './firebase';
@@ -94,7 +99,30 @@ function translateFirebaseError(err: unknown): ApiException {
   if (code === 'auth/requires-recent-login') {
     return new ApiException('العملية دي محتاجة تسجّل دخول حديث — سجّل خروج ودخول تاني وحاول مرة أخرى', 401);
   }
+  if (code === 'auth/expired-action-code') {
+    return new ApiException('انتهت صلاحية هذا الرابط — اطلب رابطًا جديدًا', 410);
+  }
+  if (code === 'auth/invalid-action-code') {
+    return new ApiException('هذا الرابط غير صالح أو استُخدم من قبل — اطلب رابطًا جديدًا', 410);
+  }
+  if (code === 'auth/user-disabled') {
+    return new ApiException('هذا الحساب معطَّل', 403);
+  }
+  if (code === 'auth/unauthorized-continue-uri') {
+    return new ApiException('رابط الموقع غير مُصرَّح به في إعدادات Firebase — أضِف نطاق الموقع في Authentication → Settings → Authorized domains', 500);
+  }
   return new ApiException(message || 'حدث خطأ غير متوقع', 500);
+}
+
+// رابط صفحة الموقع اللي بتستقبل روابط "إعادة تعيين كلمة المرور" و"تفعيل
+// البريد الإلكتروني" مباشرة (handleCodeInApp: true) — بدل ما Firebase يوجّه
+// الزائر لصفحته المُستضافة الافتراضية على *.firebaseapp.com أولًا. بكده
+// الرابط اللي بيوصل بالإيميل يبقى فيه اسم ورابط الموقع نفسه من الأول.
+function authActionCodeSettings(): ActionCodeSettings {
+  return {
+    url: `${window.location.origin}/auth/action`,
+    handleCodeInApp: true,
+  };
 }
 
 export const createBooking = async (
@@ -1003,6 +1031,9 @@ export const adminCreateUser = async (payload: AdminUserPayload): Promise<AdminU
     const adminData = { name: payload.name, email: payload.email, role: payload.role };
     await set(ref(db, `admins/${uid}`), adminData);
     if (payload.role === 'super_admin') await adjustSuperAdminCount(1);
+    await sendEmailVerification(cred.user, authActionCodeSettings()).catch(() => {
+      // فشل إرسال إيميل التفعيل مش لازم يوقف إنشاء الحساب نفسه
+    });
     await signOut(secondaryAuth);
     return { id: uid, ...adminData };
   } catch (err) {
@@ -1068,7 +1099,40 @@ export const adminDeleteUser = async (uid: string): Promise<void> => {
 
 export const sendAdminPasswordReset = async (email: string): Promise<void> => {
   try {
-    await sendPasswordResetEmail(auth, email);
+    await sendPasswordResetEmail(auth, email, authActionCodeSettings());
+  } catch (err) {
+    throw translateFirebaseError(err);
+  }
+};
+
+/** نفس sendAdminPasswordReset باسم عام — تُستخدم من نموذج "نسيت كلمة المرور"
+ * في صفحتَي دخول الزوار والأدمن (الدالة مش مقصورة على صلاحية معيّنة أصلًا). */
+export const sendPasswordReset = sendAdminPasswordReset;
+
+/** يتأكد إن رابط إعادة تعيين كلمة المرور (oobCode) لسه صالح، ويرجّع البريد
+ * الإلكتروني المرتبط بيه — بيُستخدم في صفحة /auth/action قبل عرض نموذج
+ * كلمة المرور الجديدة. */
+export const verifyPasswordResetLink = async (oobCode: string): Promise<string> => {
+  try {
+    return await verifyPasswordResetCode(auth, oobCode);
+  } catch (err) {
+    throw translateFirebaseError(err);
+  }
+};
+
+/** يطبّق كلمة المرور الجديدة فعليًا بعد التأكد من صلاحية الرابط */
+export const confirmPasswordResetLink = async (oobCode: string, newPassword: string): Promise<void> => {
+  try {
+    await confirmPasswordReset(auth, oobCode, newPassword);
+  } catch (err) {
+    throw translateFirebaseError(err);
+  }
+};
+
+/** يفعّل رابط تفعيل/تأكيد البريد الإلكتروني (verifyEmail) — بيُستخدم في صفحة /auth/action */
+export const confirmEmailVerificationLink = async (oobCode: string): Promise<void> => {
+  try {
+    await applyActionCode(auth, oobCode);
   } catch (err) {
     throw translateFirebaseError(err);
   }
