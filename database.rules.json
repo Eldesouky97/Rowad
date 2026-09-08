@@ -91,11 +91,11 @@
         "read_minutes":  { ".validate": "!newData.exists() || newData.isNumber()" },
         "views": {
           ".write": "true",
-          ".validate": "newData.isNumber() && newData.val() >= 0 && ((auth != null && root.child('admins').child(auth.uid).exists()) || newData.val() === (data.val() || 0) + 1)"
+          ".validate": "newData.isNumber() && newData.val() >= 0 && ((auth != null && root.child('admins').child(auth.uid).exists()) || newData.val() === (data.exists() ? data.val() : 0) + 1)"
         },
         "likes": {
           ".write": "true",
-          ".validate": "newData.isNumber() && newData.val() >= 0 && ((auth != null && root.child('admins').child(auth.uid).exists()) || newData.val() === (data.val() || 0) + 1 || newData.val() === (data.val() || 0) - 1)"
+          ".validate": "newData.isNumber() && newData.val() >= 0 && ((auth != null && root.child('admins').child(auth.uid).exists()) || newData.val() === (data.exists() ? data.val() : 0) + 1 || newData.val() === (data.exists() ? data.val() : 0) - 1)"
         },
         "is_featured":   { ".validate": "!newData.exists() || newData.isBoolean()" },
         "art_theme":     { ".validate": "!newData.exists() || newData.val().matches(/^art-[1-4]$/)" },
