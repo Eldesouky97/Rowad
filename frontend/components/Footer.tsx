@@ -1,7 +1,15 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { visitorSignOut } from '@/lib/api';
+import { useVisitorProfile } from '@/lib/useVisitorProfile';
+import UserAvatar from './UserAvatar';
+import { GridIcon, LogoutIcon } from './icons';
 
 export default function Footer() {
+  const { authUser, isAdmin, loading, displayName, photoUrl } = useVisitorProfile();
+
   return (
     <footer className="bg-[#0F1B2E] px-5 pb-6 pt-14 text-cream/75 sm:px-6">
       <div className="mx-auto grid max-w-[1180px] gap-10 sm:grid-cols-2 md:grid-cols-4">
@@ -60,14 +68,50 @@ export default function Footer() {
             <li>info@rowwad-borders.example</li>
             <li>٠٢ ١٢٣٤ ٥٦٧٨</li>
           </ul>
+
+          {/* حالة الحساب — نفس بيانات الهيدر، حتى تكون التجربة متسقة بعد تسجيل الدخول */}
+          {!loading && (
+            <div className="mt-5 border-t border-gold/10 pt-5">
+              {authUser ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link href="/profile" className="flex min-w-0 items-center gap-2.5">
+                    <UserAvatar src={photoUrl} name={displayName} size="sm" />
+                    <span className="truncate text-sm font-bold text-cream/85 hover:text-gold-2">{displayName}</span>
+                  </Link>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isAdmin && (
+                      <Link
+                        href="/admin/dashboard"
+                        className="flex items-center gap-1.5 rounded-full border border-gold/20 px-3 py-1.5 text-xs font-bold text-cream/75 transition hover:text-cream"
+                      >
+                        <GridIcon className="h-3.5 w-3.5" /> لوحة التحكم
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => visitorSignOut()}
+                      className="flex items-center gap-1.5 rounded-full border border-gold/20 px-3 py-1.5 text-xs font-bold text-cream/75 transition hover:text-cream"
+                    >
+                      <LogoutIcon className="h-3.5 w-3.5" /> خروج
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <Link href="/login" className="text-sm font-bold text-gold-2 hover:underline">
+                  تسجيل الدخول / إنشاء حساب
+                </Link>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mx-auto mt-10 flex max-w-[1180px] flex-wrap justify-between gap-3 border-t border-gold/15 pt-6 text-xs">
+      <div className="mx-auto mt-10 flex max-w-[1180px] flex-wrap items-center justify-between gap-3 border-t border-gold/15 pt-6 text-xs">
         <span>© {new Date().getFullYear()} رُوَّاد المحافظات الحدودية. جميع الحقوق محفوظة.</span>
-        <Link href="/admin/login" className="text-cream/50 hover:text-gold-2">
-          دخول لوحة التحكم
-        </Link>
+        {!isAdmin && (
+          <Link href="/admin/login" className="text-cream/50 hover:text-gold-2">
+            دخول لوحة التحكم
+          </Link>
+        )}
       </div>
     </footer>
   );

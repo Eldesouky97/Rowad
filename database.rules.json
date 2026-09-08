@@ -1,0 +1,206 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "admins": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && root.child('admins').child(auth.uid).child('role').val() === 'super_admin' && (data.child('email').val() !== 'eldesouky71@gmail.com' || (newData.exists() && newData.child('role').val() === 'super_admin'))",
+        ".validate": "newData.hasChildren(['name','email','role'])",
+        "name":  { ".validate": "newData.isString() && newData.val().length > 0" },
+        "email": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "role":  { ".validate": "newData.val() === 'super_admin' || newData.val() === 'editor' || newData.val() === 'viewer'" },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "admin_meta": {
+      "super_admin_count": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('admins').child(auth.uid).child('role').val() === 'super_admin'",
+        ".validate": "newData.isNumber() && newData.val() >= 0"
+      }
+    },
+
+    "events": {
+      ".read": true,
+      ".indexOn": ["slug"],
+      "$eventId": {
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".validate": "newData.hasChildren(['title','category','governorate','location','starts_at','description','seats_total'])",
+        "title":       { ".validate": "newData.isString() && newData.val().length > 0" },
+        "slug":        { ".validate": "newData.isString()" },
+        "category":    { ".validate": "newData.isString() && newData.val().length > 0" },
+        "governorate": { ".validate": "newData.isString()" },
+        "location":    { ".validate": "newData.isString()" },
+        "mode":        { ".validate": "!newData.exists() || newData.val() === 'حضوري' || newData.val() === 'أونلاين' || newData.val() === 'هجين'" },
+        "starts_at":   { ".validate": "newData.isString()" },
+        "ends_at":     { ".validate": "!newData.exists() || newData.isString()" },
+        "description": { ".validate": "newData.isString()" },
+        "seats_total": { ".validate": "newData.isNumber() && newData.val() >= 1" },
+        "seats_taken": {
+          ".write": "true",
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= newData.parent().child('seats_total').val()"
+        },
+        "price":        { ".validate": "!newData.exists() || newData.isString()" },
+        "organizer":    { ".validate": "!newData.exists() || newData.isString()" },
+        "art_theme":    { ".validate": "!newData.exists() || newData.val().matches(/^art-[1-4]$/)" },
+        "is_published": { ".validate": "newData.isBoolean()" },
+        "created_at":   { ".validate": true },
+        "updated_at":   { ".validate": true }
+      }
+    },
+
+    "bookings": {
+      "$eventId": {
+        ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        "$bookingId": {
+          ".write": "auth != null && !data.exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['full_name','phone','email','confirmation_code','created_at','user_id'])",
+          "full_name":         { ".validate": "newData.isString() && newData.val().length > 0" },
+          "phone":             { ".validate": "newData.isString() && newData.val().length > 0" },
+          "email":             { ".validate": "newData.isString() && newData.val().matches(/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/)" },
+          "governorate":       { ".validate": "!newData.exists() || newData.isString()" },
+          "notes":             { ".validate": "!newData.exists() || newData.isString()" },
+          "confirmation_code": { ".validate": "newData.isString()" },
+          "user_id":           { ".validate": "newData.isString() && newData.val() === auth.uid" },
+          "created_at":        { ".validate": true }
+        }
+      }
+    },
+
+    "articles": {
+      ".read": true,
+      ".indexOn": ["slug"],
+      "$articleId": {
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".validate": "newData.hasChildren(['title','category','author','excerpt','content'])",
+        "title":         { ".validate": "newData.isString() && newData.val().length > 0" },
+        "slug":          { ".validate": "newData.isString()" },
+        "category":      { ".validate": "newData.isString() && newData.val().length > 0" },
+        "governorate":   { ".validate": "!newData.exists() || newData.isString()" },
+        "author":        { ".validate": "newData.isString() && newData.val().length > 0" },
+        "excerpt":       { ".validate": "newData.isString()" },
+        "content":       { ".validate": "newData.isString()" },
+        "tags":          { ".validate": true },
+        "read_minutes":  { ".validate": "!newData.exists() || newData.isNumber()" },
+        "views":         { ".validate": "!newData.exists() || newData.isNumber()" },
+        "likes":         { ".validate": "!newData.exists() || newData.isNumber()" },
+        "is_featured":   { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "art_theme":     { ".validate": "!newData.exists() || newData.val().matches(/^art-[1-4]$/)" },
+        "is_published":  { ".validate": "newData.isBoolean()" },
+        "published_at":  { ".validate": true }
+      }
+    },
+
+    "programs": {
+      ".read": true,
+      "$programId": {
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".validate": "newData.hasChildren(['title','category','description'])",
+        "title":        { ".validate": "newData.isString() && newData.val().length > 0" },
+        "category":     { ".validate": "newData.val() === 'التعليم' || newData.val() === 'السياحة' || newData.val() === 'التضامن' || newData.val() === 'الزراعة' || newData.val() === 'الإعلام' || newData.val() === 'الصحة'" },
+        "description":  { ".validate": "newData.isString()" },
+        "art_theme":    { ".validate": "!newData.exists() || newData.val().matches(/^art-[1-4]$/)" },
+        "order":        { ".validate": "!newData.exists() || newData.isNumber()" },
+        "is_published": { ".validate": "newData.isBoolean()" }
+      }
+    },
+
+    "governorates": {
+      ".read": true,
+      ".indexOn": ["slug"],
+      "$governorateId": {
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".validate": "newData.hasChildren(['name','tagline','population'])",
+        "name":                  { ".validate": "newData.isString() && newData.val().length > 0" },
+        "slug":                  { ".validate": "newData.isString()" },
+        "tagline":               { ".validate": "newData.isString()" },
+        "population":            { ".validate": "newData.isString()" },
+        "projects_completed":    { ".validate": "!newData.exists() || newData.isNumber()" },
+        "completion_percentage": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 100)" },
+        "art_theme":             { ".validate": "!newData.exists() || newData.val().matches(/^art-[1-4]$/)" },
+        "order":                 { ".validate": "!newData.exists() || newData.isNumber()" },
+        "is_published":          { ".validate": "newData.isBoolean()" }
+      }
+    },
+
+    "success_stories": {
+      ".read": true,
+      "$storyId": {
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".validate": "newData.hasChildren(['name','role_title','quote'])",
+        "name":         { ".validate": "newData.isString() && newData.val().length > 0" },
+        "role_title":   { ".validate": "newData.isString()" },
+        "governorate":  { ".validate": "!newData.exists() || newData.isString()" },
+        "quote":        { ".validate": "newData.isString()" },
+        "storage_path": { ".validate": "!newData.exists() || newData.isString()" },
+        "image_url":    { ".validate": "!newData.exists() || newData.isString()" },
+        "order":        { ".validate": "!newData.exists() || newData.isNumber()" },
+        "is_published": { ".validate": "newData.isBoolean()" }
+      }
+    },
+
+    "gallery_albums": {
+      ".read": true,
+      "$albumId": {
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".validate": "newData.hasChildren(['title'])",
+        "title":        { ".validate": "newData.isString() && newData.val().length > 0" },
+        "description":  { ".validate": "!newData.exists() || newData.isString()" },
+        "order":        { ".validate": "!newData.exists() || newData.isNumber()" },
+        "is_published": { ".validate": "newData.isBoolean()" },
+        "created_at":   { ".validate": true }
+      }
+    },
+
+    "gallery_images": {
+      ".read": true,
+      ".indexOn": ["album_id"],
+      "$imageId": {
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".validate": "newData.hasChildren(['title'])",
+        "title":        { ".validate": "newData.isString() && newData.val().length > 0" },
+        "caption":      { ".validate": "!newData.exists() || newData.isString()" },
+        "album_id":     { ".validate": "!newData.exists() || newData.isString()" },
+        "art_theme":    { ".validate": "!newData.exists() || newData.val().matches(/^art-[1-4]$/)" },
+        "storage_path": { ".validate": "!newData.exists() || newData.isString()" },
+        "image_url":    { ".validate": "!newData.exists() || newData.isString()" },
+        "order":        { ".validate": "!newData.exists() || newData.isNumber()" },
+        "is_published": { ".validate": "newData.isBoolean()" }
+      }
+    },
+
+    "site_users": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$uid": {
+        ".write": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).child('role').val() === 'super_admin')",
+        ".validate": "newData.hasChildren(['email'])",
+        "name":          { ".validate": "!newData.exists() || newData.isString()" },
+        "email":         { ".validate": "newData.isString() && newData.val().length > 0" },
+        "phone":         { ".validate": "!newData.exists() || newData.isString()" },
+        "photo_url":     { ".validate": "!newData.exists() || newData.isString()" },
+        "provider":      { ".validate": "!newData.exists() || newData.isString()" },
+        "created_at":    { ".validate": true },
+        "last_login_at": { ".validate": true }
+      }
+    },
+
+    "contact_messages": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$messageId": {
+        ".write": "!data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['name','email','message','created_at'])",
+        "name":        { ".validate": "newData.isString() && newData.val().length > 0" },
+        "email":       { ".validate": "newData.isString() && newData.val().matches(/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/)" },
+        "phone":       { ".validate": "!newData.exists() || newData.isString()" },
+        "governorate": { ".validate": "!newData.exists() || newData.isString()" },
+        "message":     { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 2000" },
+        "is_read":     { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "created_at":  { ".validate": true }
+      }
+    }
+  }
+}

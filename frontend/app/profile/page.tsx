@@ -1,0 +1,322 @@
+'use client';
+
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  visitorSignOut,
+  updateVisitorProfile,
+  updateVisitorEmail,
+  updateVisitorPassword,
+  ApiException,
+} from '@/lib/api';
+import { useVisitorProfile } from '@/lib/useVisitorProfile';
+import { useToast } from '@/components/Toast';
+import UserAvatar from '@/components/UserAvatar';
+import { CameraIcon, CompassIcon, LogoutIcon, MailIcon, KeyIcon } from '@/components/icons';
+
+const inputClass =
+  'w-full rounded-lg border border-gold/40 bg-white px-3.5 py-3 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100';
+const labelClass = 'mb-1.5 block font-utility text-sm font-bold';
+const cardClass = 'rounded-[20px] border border-gold/20 bg-white p-6 sm:p-7';
+
+export default function ProfilePage() {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const { authUser, profile, loading, displayName, photoUrl } = useVisitorProfile();
+
+  useEffect(() => {
+    if (!loading && !authUser) router.replace('/login?next=/profile');
+  }, [loading, authUser, router]);
+
+  if (loading || !authUser) {
+    return <p className="py-24 text-center text-sm opacity-60">جارٍ التحقق…</p>;
+  }
+
+  const hasPasswordProvider = authUser.providerData.some((p) => p.providerId === 'password');
+  const memberSince = authUser.metadata.creationTime
+    ? new Date(authUser.metadata.creationTime).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
+    : null;
+
+  return (
+    <section className="bg-sand px-5 py-12 sm:px-6 sm:py-16">
+      <div className="mx-auto grid max-w-[720px] gap-6">
+        <div className="mb-1 flex items-center gap-2.5">
+          <CompassIcon className="h-7 w-7 text-rust" />
+          <h1 className="font-display text-2xl sm:text-3xl">إعدادات الحساب</h1>
+        </div>
+
+        <AvatarCard name={displayName} photoUrl={photoUrl} onUploaded={() => showToast('تم تحديث صورة الحساب')} />
+
+        <BasicInfoCard
+          currentName={displayName}
+          currentPhone={profile?.phone || ''}
+          onSaved={() => showToast('تم حفظ بياناتك')}
+        />
+
+        {hasPasswordProvider ? (
+          <>
+            <EmailCard currentEmail={authUser.email || ''} onSaved={() => showToast('تم تحديث البريد الإلكتروني')} />
+            <PasswordCard onSaved={() => showToast('تم تغيير كلمة المرور')} />
+          </>
+        ) : (
+          <div className={cardClass}>
+            <p className="text-sm opacity-70">
+              حسابك مرتبط بتسجيل الدخول عبر Google، فمفيش بريد إلكتروني أو كلمة مرور منفصلة تقدر تغيّرها هنا.
+            </p>
+          </div>
+        )}
+
+        <div className={cardClass}>
+          <h2 className="mb-4 font-display text-lg">معلومات الحساب</h2>
+          <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-xs font-bold uppercase tracking-wide opacity-50">طريقة الدخول</dt>
+              <dd className="mt-1 font-bold">{hasPasswordProvider ? 'بريد إلكتروني وكلمة مرور' : 'حساب Google'}</dd>
+            </div>
+            {memberSince && (
+              <div>
+                <dt className="text-xs font-bold uppercase tracking-wide opacity-50">عضو منذ</dt>
+                <dd className="mt-1 font-bold">{memberSince}</dd>
+              </div>
+            )}
+          </dl>
+
+          <button
+            onClick={async () => {
+              await visitorSignOut();
+              router.push('/');
+            }}
+            className="mt-6 flex items-center gap-2 rounded-full border border-rose-200 px-5 py-2.5 text-sm font-bold text-rose-500 transition hover:bg-rose-50"
+          >
+            <LogoutIcon className="h-4 w-4" /> تسجيل الخروج
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AvatarCard({
+  name,
+  photoUrl,
+  onUploaded,
+}: {
+  name: string;
+  photoUrl: string | null;
+  onUploaded: () => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setError(null);
+    setUploading(true);
+    try {
+      await updateVisitorProfile({ photoFile: file });
+      onUploaded();
+    } catch (err) {
+      setError(err instanceof ApiException ? err.message : 'تعذّر رفع الصورة');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className={`${cardClass} flex items-center gap-5`}>
+      <div className="relative shrink-0">
+        <UserAvatar src={photoUrl} name={name} size="lg" />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          aria-label="تغيير صورة الحساب"
+          className="absolute -bottom-1 -left-1 flex h-8 w-8 items-center justify-center rounded-full bg-violet-600 text-white shadow-md transition hover:bg-violet-700 disabled:opacity-60"
+        >
+          <CameraIcon className="h-4 w-4" />
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+      </div>
+      <div className="min-w-0">
+        <p className="font-display text-lg font-bold">{name}</p>
+        <p className="mt-1 text-xs opacity-60">
+          {uploading ? 'جارٍ رفع الصورة…' : 'اضغط على أيقونة الكاميرا لتغيير صورة حسابك (حتى 4 ميجابايت)'}
+        </p>
+        {error && <p className="mt-1 text-xs text-[#e08a6b]">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+function BasicInfoCard({
+  currentName,
+  currentPhone,
+  onSaved,
+}: {
+  currentName: string;
+  currentPhone: string;
+  onSaved: () => void;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const name = String(form.get('name') || '').trim();
+    const phone = String(form.get('phone') || '').trim();
+    if (name.length < 2) {
+      setError('من فضلك أدخل اسمًا صحيحًا');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await updateVisitorProfile({ name, phone });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof ApiException ? err.message : 'تعذّر حفظ البيانات');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className={cardClass}>
+      <h2 className="mb-4 font-display text-lg">البيانات الأساسية</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className={labelClass}>الاسم بالكامل</label>
+          <input name="name" defaultValue={currentName} required className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass}>رقم الهاتف</label>
+          <input name="phone" type="tel" defaultValue={currentPhone} className={inputClass} />
+        </div>
+      </div>
+      {error && <p className="mt-3 text-sm text-[#e08a6b]">{error}</p>}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="mt-5 rounded-full bg-violet-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
+      >
+        {submitting ? 'جارٍ الحفظ…' : 'حفظ البيانات'}
+      </button>
+    </form>
+  );
+}
+
+function EmailCard({ currentEmail, onSaved }: { currentEmail: string; onSaved: () => void }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const email = String(form.get('email') || '').trim();
+    const currentPassword = String(form.get('current_password') || '');
+    if (email === currentEmail) {
+      setError('هذا هو بريدك الحالي بالفعل');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await updateVisitorEmail(email, currentPassword);
+      onSaved();
+      e.currentTarget.reset();
+    } catch (err) {
+      setError(err instanceof ApiException ? err.message : 'تعذّر تحديث البريد الإلكتروني');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className={cardClass}>
+      <h2 className="mb-1 flex items-center gap-2 font-display text-lg"><MailIcon className="h-5 w-5 opacity-60" /> البريد الإلكتروني</h2>
+      <p className="mb-4 text-xs opacity-55">بريدك الحالي: {currentEmail}</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className={labelClass}>البريد الإلكتروني الجديد</label>
+          <input name="email" type="email" required className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass}>كلمة المرور الحالية</label>
+          <input name="current_password" type="password" required className={inputClass} />
+        </div>
+      </div>
+      {error && <p className="mt-3 text-sm text-[#e08a6b]">{error}</p>}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="mt-5 rounded-full bg-violet-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
+      >
+        {submitting ? 'جارٍ التحديث…' : 'تحديث البريد الإلكتروني'}
+      </button>
+    </form>
+  );
+}
+
+function PasswordCard({ onSaved }: { onSaved: () => void }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const currentPassword = String(form.get('current_password') || '');
+    const newPassword = String(form.get('new_password') || '');
+    const confirmPassword = String(form.get('confirm_password') || '');
+    if (newPassword.length < 8) {
+      setError('كلمة المرور الجديدة يجب أن تكون ٨ أحرف على الأقل');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('كلمة المرور الجديدة وتأكيدها غير متطابقين');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await updateVisitorPassword(newPassword, currentPassword);
+      onSaved();
+      e.currentTarget.reset();
+    } catch (err) {
+      setError(err instanceof ApiException ? err.message : 'تعذّر تغيير كلمة المرور');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className={cardClass}>
+      <h2 className="mb-4 flex items-center gap-2 font-display text-lg"><KeyIcon className="h-5 w-5 opacity-60" /> كلمة المرور</h2>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label className={labelClass}>كلمة المرور الحالية</label>
+          <input name="current_password" type="password" required className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass}>كلمة المرور الجديدة</label>
+          <input name="new_password" type="password" minLength={8} required className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass}>تأكيد كلمة المرور</label>
+          <input name="confirm_password" type="password" minLength={8} required className={inputClass} />
+        </div>
+      </div>
+      {error && <p className="mt-3 text-sm text-[#e08a6b]">{error}</p>}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="mt-5 rounded-full bg-violet-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
+      >
+        {submitting ? 'جارٍ التغيير…' : 'تغيير كلمة المرور'}
+      </button>
+    </form>
+  );
+}

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getArticle, ApiException } from '@/lib/api';
+import { getArticle, ApiException } from '@/lib/publicApi';
 import { UsersIcon, CalendarIcon, ArrowIcon } from '@/components/icons';
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {

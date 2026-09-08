@@ -3,8 +3,12 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { MenuIcon, CloseIcon, HandsIcon } from './icons';
+import { usePathname, useRouter } from 'next/navigation';
+import { visitorSignOut } from '@/lib/api';
+import { useVisitorProfile } from '@/lib/useVisitorProfile';
+import AccountMenu from './AccountMenu';
+import UserAvatar from './UserAvatar';
+import { MenuIcon, CloseIcon, HandsIcon, GridIcon, LogoutIcon, SettingsIcon } from './icons';
 
 // ملاحظة: الصور داخل مجلد public تُستدعى برابط نصي مباشر، وليس عبر import،
 // لأن Next.js يقدّم محتوى public كملفات ثابتة كما هي دون تمريرها لنظام الحزم.
@@ -24,7 +28,15 @@ const LINKS = [
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const { authUser, isAdmin, loading, displayName, photoUrl } = useVisitorProfile();
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    await visitorSignOut();
+    setOpen(false);
+    router.push('/');
+  }
 
   return (
     <header className="sticky top-0 z-[100] border-b border-gold/20 bg-night/95 backdrop-blur-md">
@@ -77,13 +89,66 @@ export default function Header() {
             <HandsIcon className="h-4 w-4" />
             انضم كمتطوع
           </Link>
-          <Link
-            href="/admin/login"
-            onClick={() => setOpen(false)}
-            className="mt-2 inline-flex items-center justify-center rounded-full border border-gold/30 px-6 py-3 font-utility text-sm font-bold text-cream/75 transition hover:text-cream lg:mt-0 lg:mr-2 lg:border-none lg:px-3"
-          >
-            تسجيل الدخول
-          </Link>
+
+          {!loading && (
+            authUser ? (
+              <>
+                {/* سطح المكتب: قائمة منسدلة مدمجة */}
+                <div className="mt-4 hidden lg:mt-0 lg:mr-2 lg:block">
+                  <AccountMenu
+                    name={displayName}
+                    email={authUser.email}
+                    photoUrl={photoUrl}
+                    isAdmin={isAdmin}
+                    onSignOut={handleSignOut}
+                  />
+                </div>
+
+                {/* الموبايل: بطاقة حساب موسّعة داخل القائمة المنسدلة كاملة الشاشة */}
+                <div className="mt-4 rounded-2xl border border-gold/15 bg-white/5 p-4 lg:hidden">
+                  <div className="flex items-center gap-3 border-b border-gold/10 pb-3.5">
+                    <UserAvatar src={photoUrl} name={displayName} size="md" />
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-cream">{displayName}</p>
+                      {authUser.email && <p className="truncate text-xs text-cream/50">{authUser.email}</p>}
+                    </div>
+                  </div>
+                  <div className="grid gap-1 pt-3">
+                    <Link
+                      href="/profile"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-2 py-2.5 font-utility text-sm font-bold text-cream/85 transition hover:bg-white/5"
+                    >
+                      <SettingsIcon className="h-4 w-4" /> إعدادات الحساب
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        href="/admin/dashboard"
+                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl px-2 py-2.5 font-utility text-sm font-bold text-cream/85 transition hover:bg-white/5"
+                      >
+                        <GridIcon className="h-4 w-4" /> لوحة التحكم
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center gap-2.5 rounded-xl px-2 py-2.5 font-utility text-sm font-bold text-rose-300 transition hover:bg-white/5"
+                    >
+                      <LogoutIcon className="h-4 w-4" /> تسجيل الخروج
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="mt-2 inline-flex items-center justify-center rounded-full border border-gold/30 px-6 py-3 font-utility text-sm font-bold text-cream/75 transition hover:text-cream lg:mt-0 lg:mr-2 lg:border-none lg:px-3"
+              >
+                تسجيل الدخول
+              </Link>
+            )
+          )}
         </nav>
 
         <button

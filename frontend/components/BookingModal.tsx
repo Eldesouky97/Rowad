@@ -1,10 +1,11 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import type { EventItem } from '@/lib/types';
-import { createBooking, ApiException } from '@/lib/api';
+import { createBooking, onVisitorAuthChange, ApiException } from '@/lib/api';
 import { CloseIcon, CheckIcon } from './icons';
 import { useToast } from './Toast';
+import VisitorAuthGate from './VisitorAuthGate';
 
 const GOVS = [
   'شمال سيناء', 'جنوب سيناء', 'أسوان', 'الوادي الجديد', 'مطروح',
@@ -18,12 +19,22 @@ export default function BookingModal({
 }: {
   event: EventItem;
   onClose: () => void;
-  onBooked: (eventId: number) => void;
+  onBooked: (eventId: string) => void;
 }) {
   const { showToast } = useToast();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [authedEmail, setAuthedEmail] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmCode, setConfirmCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = onVisitorAuthChange((user) => {
+      setAuthedEmail(user?.email ?? null);
+      setCheckingAuth(false);
+    });
+    return unsub;
+  }, []);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -92,7 +103,9 @@ export default function BookingModal({
           <CloseIcon className="h-4 w-4" />
         </button>
 
-        {confirmCode ? (
+        {checkingAuth ? (
+          <p className="py-10 text-center text-sm opacity-60">جارٍ التحقق…</p>
+        ) : confirmCode ? (
           <div className="py-4 text-center">
             <CheckIcon className="mx-auto mb-4 h-12 w-12 text-sea" />
             <h4 className="font-display text-xl">تم تأكيد حجزك بنجاح</h4>
@@ -104,6 +117,8 @@ export default function BookingModal({
               تم
             </button>
           </div>
+        ) : !authedEmail ? (
+          <VisitorAuthGate onAuthed={() => setAuthedEmail('_')} />
         ) : (
           <>
             <h3 className="ml-9 font-display text-2xl">حجز مكان في الفعالية</h3>
@@ -112,7 +127,13 @@ export default function BookingModal({
             <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
               <Field label="الاسم بالكامل" name="full_name" error={errors.full_name} />
               <Field label="رقم الهاتف" name="phone" type="tel" error={errors.phone} />
-              <Field label="البريد الإلكتروني" name="email" type="email" error={errors.email} />
+              <Field
+                label="البريد الإلكتروني"
+                name="email"
+                type="email"
+                error={errors.email}
+                defaultValue={authedEmail !== '_' ? authedEmail : undefined}
+              />
               <div>
                 <label className="mb-1.5 block font-utility text-sm font-bold">محافظتك</label>
                 <select name="governorate" className="w-full rounded-lg border border-gold/40 bg-white px-3 py-3 text-sm">
@@ -146,11 +167,13 @@ function Field({
   name,
   type = 'text',
   error,
+  defaultValue,
 }: {
   label: string;
   name: string;
   type?: string;
   error?: string;
+  defaultValue?: string;
 }) {
   return (
     <div>
@@ -158,6 +181,7 @@ function Field({
       <input
         name={name}
         type={type}
+        defaultValue={defaultValue}
         className={`w-full rounded-lg border bg-white px-3 py-3 text-sm ${error ? 'border-[#e08a6b]' : 'border-gold/40'}`}
       />
       {error && <span className="mt-1 block text-xs text-[#e08a6b]">{error}</span>}

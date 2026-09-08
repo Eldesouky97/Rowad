@@ -14,10 +14,10 @@ import {
   getGovernorates,
   getSuccessStories,
   getGallery,
-  getStorageUrl,
+  getGalleryAlbums,
 } from '@/lib/api';
 import { getMyBookedEventIds } from '@/lib/bookings';
-import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryImage } from '@/lib/types';
+import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum } from '@/lib/types';
 import {
   CalendarIcon, ArrowIcon, HandsIcon, BookIcon, CompassIcon,
   LeafIcon, MegaphoneIcon, HeartIcon, StarIcon,
@@ -29,6 +29,25 @@ const ART_BG: Record<string, string> = {
   'art-3': 'bg-gradient-to-br from-gold to-[#a9782c]',
   'art-4': 'bg-gradient-to-br from-night-3 to-night',
 };
+
+function GalleryTile({ g }: { g: GalleryImage }) {
+  return (
+    <div className="group relative aspect-square overflow-hidden rounded-2xl">
+      {g.image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={g.image_url} alt={g.title} className="h-full w-full object-cover" />
+      ) : (
+        <div className={`flex h-full w-full items-center justify-center ${ART_BG[g.art_theme]}`}>
+          <CompassIcon className="h-8 w-8 opacity-70" />
+        </div>
+      )}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+        <b className="block font-utility text-xs">{g.title}</b>
+        {g.caption && <span className="text-[11px] opacity-75">{g.caption}</span>}
+      </div>
+    </div>
+  );
+}
 
 const PROGRAM_ICONS: Record<string, (p: { className?: string }) => JSX.Element> = {
   التعليم: BookIcon,
@@ -46,7 +65,8 @@ export default function HomePage() {
   const [governorates, setGovernorates] = useState<Governorate[]>([]);
   const [stories, setStories] = useState<SuccessStory[]>([]);
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
-  const [bookedIds, setBookedIds] = useState<number[]>([]);
+  const [galleryAlbums, setGalleryAlbums] = useState<GalleryAlbum[]>([]);
+  const [bookedIds, setBookedIds] = useState<string[]>([]);
   const [bookingEvent, setBookingEvent] = useState<EventItem | null>(null);
 
   useEffect(() => {
@@ -57,7 +77,15 @@ export default function HomePage() {
     getGovernorates().then(setGovernorates).catch(() => setGovernorates([]));
     getSuccessStories().then(setStories).catch(() => setStories([]));
     getGallery().then(setGallery).catch(() => setGallery([]));
+    getGalleryAlbums().then(setGalleryAlbums).catch(() => setGalleryAlbums([]));
   }, []);
+
+  const galleryAlbumGroups = galleryAlbums
+    .map((album) => ({ album, images: gallery.filter((g) => g.album_id === album.id) }))
+    .filter((group) => group.images.length > 0);
+  const galleryUngrouped = gallery.filter(
+    (g) => !g.album_id || !galleryAlbumGroups.some((group) => group.album.id === g.album_id)
+  );
 
   return (
     <>
@@ -252,9 +280,15 @@ export default function HomePage() {
                   {Array.from({ length: 5 }).map((_, i) => <StarIcon key={i} className="h-4 w-4" />)}
                 </div>
                 <p className="flex-1 text-sm italic opacity-85">&quot;{s.quote}&quot;</p>
-                <div className="mt-5 border-t border-gold/15 pt-4">
-                  <b className="block font-utility text-sm">{s.name}</b>
-                  <span className="text-xs opacity-65">{s.role_title}</span>
+                <div className="mt-5 flex items-center gap-3 border-t border-gold/15 pt-4">
+                  {s.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.image_url} alt={s.name} className="h-11 w-11 shrink-0 rounded-full object-cover" />
+                  )}
+                  <div>
+                    <b className="block font-utility text-sm">{s.name}</b>
+                    <span className="text-xs opacity-65">{s.role_title}</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -271,24 +305,30 @@ export default function HomePage() {
             </p>
             <h2 className="font-display text-3xl">لحظات من فعالياتنا ومشاريعنا وإنجازاتنا</h2>
           </Reveal>
-          <Reveal className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {gallery.map((g) => (
-              <div key={g.id} className="group relative aspect-square overflow-hidden rounded-2xl">
-                {g.image_path ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={getStorageUrl(g.image_path)} alt={g.title} className="h-full w-full object-cover" />
-                ) : (
-                  <div className={`flex h-full w-full items-center justify-center ${ART_BG[g.art_theme]}`}>
-                    <CompassIcon className="h-8 w-8 opacity-70" />
+          {galleryAlbumGroups.length === 0 ? (
+            <Reveal className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {gallery.map((g) => <GalleryTile key={g.id} g={g} />)}
+            </Reveal>
+          ) : (
+            <div className="grid gap-10">
+              {galleryAlbumGroups.map(({ album, images }) => (
+                <Reveal key={album.id}>
+                  <h3 className="mb-4 font-display text-xl text-gold-2">{album.title}</h3>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {images.map((g) => <GalleryTile key={g.id} g={g} />)}
                   </div>
-                )}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                  <b className="block font-utility text-xs">{g.title}</b>
-                  {g.caption && <span className="text-[11px] opacity-75">{g.caption}</span>}
-                </div>
-              </div>
-            ))}
-          </Reveal>
+                </Reveal>
+              ))}
+              {galleryUngrouped.length > 0 && (
+                <Reveal>
+                  <h3 className="mb-4 font-display text-xl text-gold-2">صور أخرى</h3>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {galleryUngrouped.map((g) => <GalleryTile key={g.id} g={g} />)}
+                  </div>
+                </Reveal>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

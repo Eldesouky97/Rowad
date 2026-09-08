@@ -15,7 +15,7 @@ export default function ActivitiesPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>('all');
-  const [bookedIds, setBookedIds] = useState<number[]>([]);
+  const [bookedIds, setBookedIds] = useState<string[]>([]);
   const [bookingEvent, setBookingEvent] = useState<EventItem | null>(null);
 
   useEffect(() => {

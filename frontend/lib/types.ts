@@ -1,5 +1,5 @@
 export interface EventItem {
-  id: number;
+  id: string;
   title: string;
   slug: string;
   category: string;
@@ -36,19 +36,20 @@ export interface EventItemPayload {
 }
 
 export interface Booking {
-  id: number;
-  event_id: number;
+  id: string;
+  event_id: string;
   confirmation_code: string;
   full_name: string;
   phone: string;
   email: string;
   governorate: string | null;
   notes: string | null;
+  user_id: string;
   created_at: string;
 }
 
 export interface Article {
-  id: number;
+  id: string;
   title: string;
   slug: string;
   category: string;
@@ -80,7 +81,7 @@ export interface ArticleItemPayload {
 }
 
 export interface Program {
-  id: number;
+  id: string;
   title: string;
   category: 'التعليم' | 'السياحة' | 'التضامن' | 'الزراعة' | 'الإعلام' | 'الصحة';
   description: string;
@@ -90,7 +91,7 @@ export interface Program {
 }
 
 export interface Governorate {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   tagline: string;
@@ -103,21 +104,34 @@ export interface Governorate {
 }
 
 export interface SuccessStory {
-  id: number;
+  id: string;
   name: string;
   role_title: string;
   governorate: string | null;
   quote: string;
+  storage_path: string | null;
+  image_url: string | null;
   order: number;
   is_published: boolean;
 }
 
+export interface GalleryAlbum {
+  id: string;
+  title: string;
+  description: string | null;
+  order: number;
+  is_published: boolean;
+  created_at: string;
+}
+
 export interface GalleryImage {
-  id: number;
+  id: string;
   title: string;
   caption: string | null;
+  album_id: string | null;
   art_theme: 'art-1' | 'art-2' | 'art-3' | 'art-4';
-  image_path: string | null;
+  storage_path: string | null;
+  image_url: string | null;
   order: number;
   is_published: boolean;
 }
@@ -133,7 +147,7 @@ export interface ContactMessagePayload {
 export type AdminRole = 'super_admin' | 'editor' | 'viewer';
 
 export interface AdminUser {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: AdminRole;
@@ -144,6 +158,22 @@ export interface AdminUserPayload {
   email: string;
   password?: string;
   role: AdminRole;
+}
+
+export interface SiteUser {
+  id: string;
+  name?: string;
+  email: string;
+  phone?: string;
+  photo_url?: string;
+  provider?: string;
+  created_at?: string;
+  last_login_at?: string;
+}
+
+export interface VisitorProfilePayload {
+  name?: string;
+  phone?: string;
 }
 
 export interface ApiError {
