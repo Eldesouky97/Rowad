@@ -1,9 +1,0 @@
-{
-  "name": "migrate-to-firebase",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.1127.0",
-    "firebase": "^12.18.0"
-  }
-}
