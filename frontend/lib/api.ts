@@ -794,6 +794,13 @@ export const adminDeleteSuccessStory = async (id: string): Promise<void> => {
 };
 
 /* ============ رفع الصور عبر Cloudflare R2 (معرض الصور، قصص النجاح، صور البروفايل) ============ */
+/** هيدر Authorization: Bearer <idToken> — راوت /api/upload بيتحقق منه قبل أي
+ * رفع/حذف صورة (كان مفتوحًا بالكامل لأي زائر مجهول قبل مراجعة أمنية). */
+async function authHeader(): Promise<Record<string, string>> {
+  const token = await auth.currentUser?.getIdToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function uploadImageToR2(
   file: File,
   folder: 'gallery' | 'avatars' | 'branding' = 'gallery'
@@ -801,7 +808,8 @@ async function uploadImageToR2(
   const formData = new FormData();
   formData.append('file', file);
   formData.append('folder', folder);
-  const res = await fetch('/api/upload', { method: 'POST', body: formData });
+  const headers = await authHeader();
+  const res = await fetch('/api/upload', { method: 'POST', headers, body: formData });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: 'فشل رفع الصورة' }));
     throw new ApiException(body.message || 'فشل رفع الصورة', res.status);
@@ -843,9 +851,10 @@ export const adminCreateGalleryImage = async (formData: FormData): Promise<Galle
 
 async function deleteImageFromR2(storagePath: string): Promise<void> {
   try {
+    const headers = await authHeader();
     await fetch('/api/upload', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ storage_path: storagePath }),
     });
   } catch {
