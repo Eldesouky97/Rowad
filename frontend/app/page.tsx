@@ -16,9 +16,10 @@ import {
   getSuccessStories,
   getGallery,
   getGalleryAlbums,
+  getSiteSettings,
 } from '@/lib/api';
 import { getMyBookedEventIds } from '@/lib/bookings';
-import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum } from '@/lib/types';
+import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum, SectionsVisibility } from '@/lib/types';
 import {
   CalendarIcon, ArrowIcon, HandsIcon, BookIcon, CompassIcon,
   LeafIcon, MegaphoneIcon, HeartIcon, StarIcon, ImageIcon, LayersIcon, ZoomIcon, UsersIcon, PinIcon, SearchIcon,
@@ -133,6 +134,7 @@ export default function HomePage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [programSearch, setProgramSearch] = useState('');
   const [programCategory, setProgramCategory] = useState<string>('all');
+  const [sectionsVisibility, setSectionsVisibility] = useState<SectionsVisibility>({});
 
   useEffect(() => {
     setBookedIds(getMyBookedEventIds());
@@ -143,7 +145,11 @@ export default function HomePage() {
     getSuccessStories().then(setStories).catch(() => setStories([]));
     getGallery().then(setGallery).catch(() => setGallery([]));
     getGalleryAlbums().then(setGalleryAlbums).catch(() => setGalleryAlbums([]));
+    getSiteSettings().then((s) => setSectionsVisibility(s.sections_visibility ?? {})).catch(() => setSectionsVisibility({}));
   }, []);
+
+  // section مخفي بس لو الأدمن عطّله صراحة من إعدادات الموقع (undefined = ظاهر افتراضيًا)
+  const isVisible = (key: keyof SectionsVisibility) => sectionsVisibility[key] !== false;
 
   const galleryAlbumGroups = galleryAlbums
     .map((album) => ({ album, images: gallery.filter((g) => g.album_id === album.id) }))
@@ -209,7 +215,7 @@ export default function HomePage() {
       </section>
 
       {/* ============ ABOUT ============ */}
-      <section id="about" className="bg-sand py-20">
+      <section id="about" className={`bg-sand py-20 ${!isVisible('about') ? 'hidden' : ''}`}>
         <Reveal className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-rust">
             <span className="h-0.5 w-6 bg-rust" /> من نحن
@@ -263,7 +269,7 @@ export default function HomePage() {
       </section>
 
       {/* ============ PROGRAMS ============ */}
-      <section id="programs" className="bg-cream py-20">
+      <section id="programs" className={`bg-cream py-20 ${!isVisible('programs') ? 'hidden' : ''}`}>
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-8 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-rust">
@@ -328,7 +334,7 @@ export default function HomePage() {
       </section>
 
       {/* ============ ARTICLES ============ */}
-      <section id="articles" className="bg-night py-20 text-cream">
+      <section id="articles" className={`bg-night py-20 text-cream ${!isVisible('articles') ? 'hidden' : ''}`}>
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-10 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-gold-2">
@@ -350,7 +356,7 @@ export default function HomePage() {
       </section>
 
       {/* ============ EVENTS ============ */}
-      <section id="events" className="bg-sand py-20">
+      <section id="events" className={`bg-sand py-20 ${!isVisible('events') ? 'hidden' : ''}`}>
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-10 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-rust">
@@ -375,7 +381,7 @@ export default function HomePage() {
       </section>
 
       {/* ============ TESTIMONIALS ============ */}
-      <section id="testimonials" className="bg-cream py-20">
+      <section id="testimonials" className={`bg-cream py-20 ${!isVisible('testimonials') ? 'hidden' : ''}`}>
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-10 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-rust">
@@ -431,7 +437,7 @@ export default function HomePage() {
       </section>
 
       {/* ============ GALLERY ============ */}
-      <section id="gallery" className="bg-night py-20 text-cream">
+      <section id="gallery" className={`bg-night py-20 text-cream ${!isVisible('gallery') ? 'hidden' : ''}`}>
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-10 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-gold-2">
@@ -496,7 +502,7 @@ export default function HomePage() {
       )}
 
       {/* ============ GOVERNORATES ============ */}
-      <section id="governorates" className="bg-sand py-20">
+      <section id="governorates" className={`bg-sand py-20 ${!isVisible('governorates') ? 'hidden' : ''}`}>
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-10 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-rust">
@@ -586,7 +592,7 @@ export default function HomePage() {
       </section>
 
       {/* ============ CONTACT ============ */}
-      <section id="contact" className="bg-sand py-20">
+      <section id="contact" className={`bg-sand py-20 ${!isVisible('contact') ? 'hidden' : ''}`}>
         <Reveal className="mx-auto mb-10 max-w-[640px] px-5 sm:px-6">
           <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-rust">
             <span className="h-0.5 w-6 bg-rust" /> اتصل بنا

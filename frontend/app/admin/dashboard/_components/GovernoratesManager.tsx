@@ -4,7 +4,10 @@ import { FormEvent, useEffect, useState } from 'react';
 import { adminGetGovernorates, adminCreateGovernorate, adminUpdateGovernorate, adminDeleteGovernorate, ApiException } from '@/lib/api';
 import type { Governorate } from '@/lib/types';
 import { PlusIcon, EditIcon, TrashIcon, PinIcon } from '@/components/icons';
-import { ART_THEMES, inputClass, labelClass, SectionCard, EmptyState, ErrorText, PublisherNote, type Notify } from './shared';
+import {
+  ART_THEMES, inputClass, labelClass, SectionCard, Badge,
+  EmptyState, ErrorText, PublisherNote, PendingBadge, EditorReviewNotice, publishToast, type Notify,
+} from './shared';
 
 const ART_BG: Record<string, string> = {
   'art-1': 'from-sea to-[#0a4247]',
@@ -13,7 +16,15 @@ const ART_BG: Record<string, string> = {
   'art-4': 'from-night-3 to-night',
 };
 
-export default function GovernoratesManager({ canEdit, showToast }: { canEdit: boolean; showToast: Notify }) {
+export default function GovernoratesManager({
+  canEdit,
+  isSuperAdmin,
+  showToast,
+}: {
+  canEdit: boolean;
+  isSuperAdmin: boolean;
+  showToast: Notify;
+}) {
   const [items, setItems] = useState<Governorate[]>([]);
   const [editing, setEditing] = useState<Governorate | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -40,10 +51,10 @@ export default function GovernoratesManager({ canEdit, showToast }: { canEdit: b
     try {
       if (editing) {
         await adminUpdateGovernorate(editing.id, formData);
-        showToast('تم تحديث المحافظة');
+        showToast(publishToast(isSuperAdmin, 'تحديث', 'المحافظة'));
       } else {
         await adminCreateGovernorate(formData);
-        showToast('تم إضافة المحافظة');
+        showToast(publishToast(isSuperAdmin, 'إضافة', 'المحافظة'));
       }
       closeForm();
       refresh();
@@ -74,6 +85,8 @@ export default function GovernoratesManager({ canEdit, showToast }: { canEdit: b
         )
       }
     >
+      <EditorReviewNotice isSuperAdmin={isSuperAdmin} canEdit={canEdit} />
+
       {showForm && canEdit && (
         <form onSubmit={handleSubmit} className="mb-6 grid gap-4 rounded-xl bg-sand/60 p-5 sm:grid-cols-2">
           <div>
@@ -150,10 +163,18 @@ export default function GovernoratesManager({ canEdit, showToast }: { canEdit: b
                   <p className="mt-1 truncate text-[10px] text-white/50">نُشر بواسطة {g.created_by_name}</p>
                 )}
               </div>
-              {canEdit && (
+              <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
+                {!g.is_published && <Badge tone="neutral">غير منشورة</Badge>}
+                <PendingBadge item={g} />
+              </div>
+              {(canEdit || isSuperAdmin) && (
                 <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-2 opacity-0 transition group-hover:opacity-100">
-                  <button onClick={() => openEdit(g)} className="rounded-lg bg-white/90 p-1.5 text-ink/60 shadow hover:text-ink" aria-label="تعديل"><EditIcon className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => handleDelete(g.id)} className="rounded-lg bg-white/90 p-1.5 text-rose-500 shadow hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-3.5 w-3.5" /></button>
+                  {canEdit && (
+                    <button onClick={() => openEdit(g)} className="rounded-lg bg-white/90 p-1.5 text-ink/60 shadow hover:text-ink" aria-label="تعديل"><EditIcon className="h-3.5 w-3.5" /></button>
+                  )}
+                  {isSuperAdmin && (
+                    <button onClick={() => handleDelete(g.id)} className="rounded-lg bg-white/90 p-1.5 text-rose-500 shadow hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-3.5 w-3.5" /></button>
+                  )}
                 </div>
               )}
             </div>

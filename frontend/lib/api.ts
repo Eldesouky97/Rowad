@@ -40,6 +40,7 @@ import type {
   SuccessStory,
   GalleryImage,
   GalleryAlbum,
+  SiteSettings,
 } from './types';
 
 // القراءات العامة (REST خالصة، بدون Firebase SDK) منقولة إلى publicApi.ts
@@ -55,6 +56,7 @@ export {
   getSuccessStories,
   getGallery,
   getGalleryAlbums,
+  getSiteSettings,
   ApiException,
 } from './publicApi';
 
@@ -371,21 +373,44 @@ export const adminMe = async (): Promise<AdminUser | null> => {
   return { id: user.uid, ...snap.val() } as AdminUser;
 };
 
-// بيسجّل هوية الأدمن اللي بينشئ المحتوى (created_by_uid/name) — يُستخدم في كل
-// دوال "إنشاء" للمحتوى القابل للنشر. المعلومة دي بتظهر بلوحة التحكم بس (مين
-// نشر إيه) ومنفصلة تمامًا عن حقل "author" الاختياري اللي الأدمن بيكتبه بنفسه
-// ليظهر للجمهور (زي "بقلم فلان") — ممكن يكونوا شخصين مختلفين تمامًا.
-async function getPublisherInfo(): Promise<{ created_by_uid: string; created_by_name: string }> {
+// بيسجّل هوية الأدمن اللي بينشئ المحتوى (created_by_uid/name) ودوره الحالي —
+// يُستخدم في كل دوال "إنشاء/تعديل" للمحتوى القابل للنشر. المعلومة دي بتظهر
+// بلوحة التحكم بس (مين نشر إيه) ومنفصلة تمامًا عن حقل "author" الاختياري
+// اللي الأدمن بيكتبه بنفسه ليظهر للجمهور (زي "بقلم فلان").
+async function getPublisherInfo(): Promise<{ created_by_uid: string; created_by_name: string; role: AdminRole | null }> {
   const user = auth.currentUser;
-  if (!user) return { created_by_uid: '', created_by_name: 'غير معروف' };
+  if (!user) return { created_by_uid: '', created_by_name: 'غير معروف', role: null };
   let name = user.displayName || user.email || 'أدمن';
+  let role: AdminRole | null = null;
   try {
-    const snap = await get(ref(db, `admins/${user.uid}/name`));
-    if (snap.exists()) name = snap.val();
+    const snap = await get(ref(db, `admins/${user.uid}`));
+    if (snap.exists()) {
+      const data = snap.val() as { name?: string; role?: AdminRole };
+      name = data.name || name;
+      role = data.role ?? null;
+    }
   } catch {
-    // تعذّر قراءة الاسم من /admins — نكتفي بالقيمة الافتراضية أعلاه
+    // تعذّر قراءة بيانات الأدمن — نكتفي بالقيم الافتراضية أعلاه
   }
-  return { created_by_uid: user.uid, created_by_name: name };
+  return { created_by_uid: user.uid, created_by_name: name, role };
+}
+
+// المحرر (editor) عنده صلاحية النشر والتعديل بس — أي محتوى بينشئه أو يعدّله
+// بيتحفظ تلقائيًا "بانتظار المراجعة" (is_published: false, pending_review:
+// true) لحد ما سوبر أدمن يوافق عليه من قسم "بانتظار المراجعة". القيد ده
+// مفروض هنا وأيضًا على مستوى database.rules.json (حارس أمان حقيقي، مش بس
+// واجهة) — سوبر أدمن بينشر فورًا زي ما هو متوقّع من الفورم.
+async function buildPublishFields(
+  desiredIsPublished: boolean
+): Promise<{ created_by_uid: string; created_by_name: string; is_published: boolean; pending_review: boolean }> {
+  const { created_by_uid, created_by_name, role } = await getPublisherInfo();
+  const isEditor = role === 'editor';
+  return {
+    created_by_uid,
+    created_by_name,
+    is_published: isEditor ? false : desiredIsPublished,
+    pending_review: isEditor,
+  };
 }
 
 /* ============ Admin: Events (full CRUD) ============ */
@@ -396,33 +421,81 @@ export const adminGetEvents = async (): Promise<EventItem[]> => {
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime()) as EventItem[];
 };
 
-export const adminCreateEvent = async (payload: EventItemPayload): Promise<EventItem> => {
-  const data = {
-    ...payload,
-    ...(await getPublisherInfo()),
-    slug: makeSlug(payload.title),
-    mode: payload.mode ?? 'حضوري',
-    art_theme: payload.art_theme ?? 'art-1',
-    is_published: payload.is_published ?? true,
+// FormData بدل كائن عادي عشان تدعم رفع صورة اختيارية للفعالية (زي المحافظات وقصص النجاح)
+export const adminCreateEvent = async (formData: FormData): Promise<EventItem> => {
+  const file = formData.get('image') as File | null;
+  const title = String(formData.get('title') || '');
+  const endsAt = String(formData.get('ends_at') || '');
+  const price = String(formData.get('price') || '').trim();
+  const organizer = String(formData.get('organizer') || '').trim();
+  const data: Record<string, unknown> = {
+    title,
+    category: formData.get('category'),
+    governorate: formData.get('governorate'),
+    location: formData.get('location'),
+    mode: formData.get('mode') || 'حضوري',
+    starts_at: formData.get('starts_at'),
+    ends_at: endsAt || null,
+    description: formData.get('description'),
+    seats_total: Number(formData.get('seats_total') || 1),
+    price: price || null,
+    organizer: organizer || null,
+    art_theme: formData.get('art_theme') || 'art-1',
+    author: formData.get('author') || null,
+    slug: makeSlug(title),
     seats_taken: 0,
-    ends_at: payload.ends_at ?? null,
-    price: payload.price ?? null,
-    organizer: payload.organizer ?? null,
+    storage_path: null,
+    image_url: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    ...(await buildPublishFields(formData.get('is_published') !== 'false')),
   };
+  if (file && file.size > 0) {
+    const uploaded = await uploadImageToR2(file);
+    data.storage_path = uploaded.storage_path;
+    data.image_url = uploaded.image_url;
+  }
   try {
     const newRef = push(ref(db, 'events'));
     await set(newRef, data);
-    return computeEventFields({ id: newRef.key!, ...data }) as EventItem;
+    const created = { id: newRef.key!, ...data } as EventItem;
+    return computeEventFields(created);
   } catch (err) {
     throw translateFirebaseError(err);
   }
 };
 
-export const adminUpdateEvent = async (id: string, payload: Partial<EventItemPayload>): Promise<void> => {
+export const adminUpdateEvent = async (id: string, formData: FormData): Promise<void> => {
+  const file = formData.get('image') as File | null;
+  const endsAt = String(formData.get('ends_at') || '');
+  const price = String(formData.get('price') || '').trim();
+  const organizer = String(formData.get('organizer') || '').trim();
+  const data: Record<string, unknown> = {
+    title: formData.get('title'),
+    category: formData.get('category'),
+    governorate: formData.get('governorate'),
+    location: formData.get('location'),
+    mode: formData.get('mode') || 'حضوري',
+    starts_at: formData.get('starts_at'),
+    ends_at: endsAt || null,
+    description: formData.get('description'),
+    seats_total: Number(formData.get('seats_total') || 1),
+    price: price || null,
+    organizer: organizer || null,
+    art_theme: formData.get('art_theme') || 'art-1',
+    author: formData.get('author') || null,
+    updated_at: new Date().toISOString(),
+    ...(await buildPublishFields(formData.get('is_published') !== 'false')),
+  };
+  if (file && file.size > 0) {
+    const existingSnap = await get(ref(db, `events/${id}/storage_path`));
+    const uploaded = await uploadImageToR2(file);
+    data.storage_path = uploaded.storage_path;
+    data.image_url = uploaded.image_url;
+    if (existingSnap.exists()) await deleteImageFromR2(existingSnap.val());
+  }
   try {
-    await update(ref(db, `events/${id}`), { ...payload, updated_at: new Date().toISOString() });
+    await update(ref(db, `events/${id}`), data);
   } catch (err) {
     throw translateFirebaseError(err);
   }
@@ -430,8 +503,10 @@ export const adminUpdateEvent = async (id: string, payload: Partial<EventItemPay
 
 export const adminDeleteEvent = async (id: string): Promise<void> => {
   try {
+    const existingSnap = await get(ref(db, `events/${id}/storage_path`));
     await remove(ref(db, `events/${id}`));
     await remove(ref(db, `bookings/${id}`));
+    if (existingSnap.exists()) await deleteImageFromR2(existingSnap.val());
   } catch (err) {
     throw translateFirebaseError(err);
   }
@@ -453,13 +528,12 @@ export const adminGetArticles = async (): Promise<Article[]> => {
 export const adminCreateArticle = async (payload: ArticleItemPayload): Promise<Article> => {
   const data = {
     ...payload,
-    ...(await getPublisherInfo()),
+    ...(await buildPublishFields(payload.is_published ?? true)),
     slug: makeSlug(payload.title),
     governorate: payload.governorate ?? 'عام',
     tags: payload.tags ?? null,
     read_minutes: payload.read_minutes ?? 5,
     is_featured: payload.is_featured ?? false,
-    is_published: payload.is_published ?? true,
     art_theme: 'art-1' as const,
     views: 0,
     likes: 0,
@@ -476,7 +550,8 @@ export const adminCreateArticle = async (payload: ArticleItemPayload): Promise<A
 
 export const adminUpdateArticle = async (id: string, payload: Partial<ArticleItemPayload>): Promise<void> => {
   try {
-    await update(ref(db, `articles/${id}`), payload);
+    const publishFields = await buildPublishFields(payload.is_published ?? true);
+    await update(ref(db, `articles/${id}`), { ...payload, ...publishFields });
   } catch (err) {
     throw translateFirebaseError(err);
   }
@@ -497,7 +572,7 @@ export const adminGetPrograms = async (): Promise<Program[]> => {
 };
 
 export const adminCreateProgram = async (payload: Partial<Program>): Promise<Program> => {
-  const data = { ...payload, ...(await getPublisherInfo()), art_theme: payload.art_theme ?? 'art-1', order: payload.order ?? 0, is_published: payload.is_published ?? true };
+  const data = { ...payload, ...(await buildPublishFields(payload.is_published ?? true)), art_theme: payload.art_theme ?? 'art-1', order: payload.order ?? 0 };
   try {
     const newRef = push(ref(db, 'programs'));
     await set(newRef, data);
@@ -509,7 +584,8 @@ export const adminCreateProgram = async (payload: Partial<Program>): Promise<Pro
 
 export const adminUpdateProgram = async (id: string, payload: Partial<Program>): Promise<void> => {
   try {
-    await update(ref(db, `programs/${id}`), payload);
+    const publishFields = await buildPublishFields(payload.is_published ?? true);
+    await update(ref(db, `programs/${id}`), { ...payload, ...publishFields });
   } catch (err) {
     throw translateFirebaseError(err);
   }
@@ -540,12 +616,11 @@ export const adminCreateGovernorate = async (formData: FormData): Promise<Govern
     completion_percentage: Number(formData.get('completion_percentage') || 0),
     art_theme: formData.get('art_theme') || 'art-1',
     order: Number(formData.get('order') || 0),
-    is_published: formData.get('is_published') !== 'false',
     author: formData.get('author') || null,
     slug: makeSlug(String(formData.get('name') || '')),
     storage_path: null,
     image_url: null,
-    ...(await getPublisherInfo()),
+    ...(await buildPublishFields(formData.get('is_published') !== 'false')),
   };
   if (file && file.size > 0) {
     const uploaded = await uploadImageToR2(file);
@@ -571,8 +646,8 @@ export const adminUpdateGovernorate = async (id: string, formData: FormData): Pr
     completion_percentage: Number(formData.get('completion_percentage') || 0),
     art_theme: formData.get('art_theme') || 'art-1',
     order: Number(formData.get('order') || 0),
-    is_published: formData.get('is_published') !== 'false',
     author: formData.get('author') || null,
+    ...(await buildPublishFields(formData.get('is_published') !== 'false')),
   };
   if (file && file.size > 0) {
     const existingSnap = await get(ref(db, `governorates/${id}/storage_path`));
@@ -610,11 +685,10 @@ export const adminCreateSuccessStory = async (formData: FormData): Promise<Succe
     governorate: formData.get('governorate') || null,
     quote: formData.get('quote'),
     order: Number(formData.get('order') || 0),
-    is_published: formData.get('is_published') !== 'false',
     author: formData.get('author') || null,
     storage_path: null,
     image_url: null,
-    ...(await getPublisherInfo()),
+    ...(await buildPublishFields(formData.get('is_published') !== 'false')),
   };
   if (file && file.size > 0) {
     const uploaded = await uploadImageToR2(file);
@@ -638,8 +712,8 @@ export const adminUpdateSuccessStory = async (id: string, formData: FormData): P
     governorate: formData.get('governorate') || null,
     quote: formData.get('quote'),
     order: Number(formData.get('order') || 0),
-    is_published: formData.get('is_published') !== 'false',
     author: formData.get('author') || null,
+    ...(await buildPublishFields(formData.get('is_published') !== 'false')),
   };
   if (file && file.size > 0) {
     const existingSnap = await get(ref(db, `success_stories/${id}/storage_path`));
@@ -694,11 +768,10 @@ export const adminCreateGalleryImage = async (formData: FormData): Promise<Galle
     album_id: formData.get('album_id') || null,
     art_theme: formData.get('art_theme') || 'art-1',
     order: Number(formData.get('order') || 0),
-    is_published: formData.get('is_published') !== 'false',
     author: formData.get('author') || null,
     storage_path: null,
     image_url: null,
-    ...(await getPublisherInfo()),
+    ...(await buildPublishFields(formData.get('is_published') !== 'false')),
   };
   if (file && file.size > 0) {
     const uploaded = await uploadImageToR2(file);
@@ -734,8 +807,8 @@ export const adminUpdateGalleryImage = async (id: string, formData: FormData): P
     album_id: formData.get('album_id') || null,
     art_theme: formData.get('art_theme') || 'art-1',
     order: Number(formData.get('order') || 0),
-    is_published: formData.get('is_published') !== 'false',
     author: formData.get('author') || null,
+    ...(await buildPublishFields(formData.get('is_published') !== 'false')),
   };
   if (file && file.size > 0) {
     const existingSnap = await get(ref(db, `gallery_images/${id}/storage_path`));
@@ -769,7 +842,7 @@ export const adminCreateGalleryImagesBulk = async (
   onProgress?: (done: number, total: number) => void
 ): Promise<GalleryImage[]> => {
   const results: GalleryImage[] = [];
-  const publisher = await getPublisherInfo();
+  const publishFields = await buildPublishFields(meta.is_published);
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     try {
@@ -780,10 +853,9 @@ export const adminCreateGalleryImagesBulk = async (
         album_id: meta.album_id,
         art_theme: meta.art_theme,
         order: meta.startOrder + i,
-        is_published: meta.is_published,
         storage_path: uploaded.storage_path,
         image_url: uploaded.image_url,
-        ...publisher,
+        ...publishFields,
       };
       const newRef = push(ref(db, 'gallery_images'));
       await set(newRef, data);
@@ -808,9 +880,8 @@ export const adminCreateAlbum = async (payload: { title: string; description?: s
     title: payload.title,
     description: payload.description || null,
     order: payload.order ?? 0,
-    is_published: payload.is_published ?? true,
     created_at: new Date().toISOString(),
-    ...(await getPublisherInfo()),
+    ...(await buildPublishFields(payload.is_published ?? true)),
   };
   try {
     const newRef = push(ref(db, 'gallery_albums'));
@@ -823,7 +894,8 @@ export const adminCreateAlbum = async (payload: { title: string; description?: s
 
 export const adminUpdateAlbum = async (id: string, payload: Partial<{ title: string; description: string | null; order: number; is_published: boolean }>): Promise<void> => {
   try {
-    await update(ref(db, `gallery_albums/${id}`), payload);
+    const publishFields = await buildPublishFields(payload.is_published ?? true);
+    await update(ref(db, `gallery_albums/${id}`), { ...payload, ...publishFields });
   } catch (err) {
     throw translateFirebaseError(err);
   }
@@ -847,11 +919,21 @@ export const adminDeleteAlbum = async (id: string): Promise<void> => {
 
 // ينسب مجموعة صور موجودة بالفعل لألبوم معيّن دفعة واحدة (multi-path update)
 // — بيُستخدم في اختيار "صور قديمة" من المعرض لضمّها لألبوم بدل رفعها تاني.
-// albumId = null معناه فكّ الربط (نقل الصور لقسم "بدون ألبوم").
+// albumId = null معناه فكّ الربط (نقل الصور لقسم "بدون ألبوم"). لو محرر هو
+// اللي بينفّذها، لازم كمان نفرض is_published=false على كل صورة (زي أي تعديل
+// تاني منه) وإلا database.rules.json هترفض الكتابة بالكامل.
 export const adminAssignImagesToAlbum = async (imageIds: string[], albumId: string | null): Promise<void> => {
   if (imageIds.length === 0) return;
-  const dbUpdates: Record<string, string | null> = {};
-  for (const id of imageIds) dbUpdates[`gallery_images/${id}/album_id`] = albumId;
+  const { role } = await getPublisherInfo();
+  const isEditor = role === 'editor';
+  const dbUpdates: Record<string, string | boolean | null> = {};
+  for (const id of imageIds) {
+    dbUpdates[`gallery_images/${id}/album_id`] = albumId;
+    if (isEditor) {
+      dbUpdates[`gallery_images/${id}/is_published`] = false;
+      dbUpdates[`gallery_images/${id}/pending_review`] = true;
+    }
+  }
   try {
     await update(ref(db), dbUpdates);
   } catch (err) {
@@ -1020,5 +1102,87 @@ export const adminDeleteUserCompletely = async (uid: string): Promise<void> => {
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: 'تعذّر حذف الحساب' }));
     throw new ApiException(body.message || 'تعذّر حذف الحساب', res.status);
+  }
+};
+
+/* ============ Admin: بانتظار المراجعة (سوبر أدمن فقط) ============ */
+
+export type PendingCollection =
+  | 'events' | 'articles' | 'programs' | 'governorates' | 'success_stories' | 'gallery_images' | 'gallery_albums';
+
+export interface PendingReviewItem {
+  id: string;
+  collection: PendingCollection;
+  collectionLabel: string;
+  title: string;
+  created_by_name?: string;
+}
+
+const PENDING_COLLECTIONS: { key: PendingCollection; label: string }[] = [
+  { key: 'events', label: 'فعالية' },
+  { key: 'articles', label: 'مقال' },
+  { key: 'programs', label: 'برنامج' },
+  { key: 'governorates', label: 'محافظة' },
+  { key: 'success_stories', label: 'قصة نجاح' },
+  { key: 'gallery_images', label: 'صورة معرض' },
+  { key: 'gallery_albums', label: 'ألبوم صور' },
+];
+
+// بيجمع كل العناصر "بانتظار المراجعة" (pending_review) من كل أنواع المحتوى
+// السبعة في قائمة واحدة موحّدة — يُستخدم في قسم "بانتظار المراجعة" الجديد.
+export const adminGetPendingReviewItems = async (): Promise<PendingReviewItem[]> => {
+  const results: PendingReviewItem[] = [];
+  for (const { key, label } of PENDING_COLLECTIONS) {
+    const snap = await get(ref(db, key));
+    const items = objectToArray(snap.val() ?? {}) as Array<
+      { id: string; title?: string; name?: string; pending_review?: boolean; created_by_name?: string }
+    >;
+    for (const item of items) {
+      if (item.pending_review) {
+        results.push({
+          id: item.id,
+          collection: key,
+          collectionLabel: label,
+          title: item.title || item.name || '—',
+          created_by_name: item.created_by_name,
+        });
+      }
+    }
+  }
+  return results;
+};
+
+/** يوافق على عنصر معلَّق وينشره فعليًا — سوبر أدمن فقط (مفروض في database.rules.json) */
+export const adminApprovePendingItem = async (collection: PendingCollection, id: string): Promise<void> => {
+  try {
+    await update(ref(db, `${collection}/${id}`), { is_published: true, pending_review: false });
+  } catch (err) {
+    throw translateFirebaseError(err);
+  }
+};
+
+// بيرفض عنصر معلَّق بحذفه نهائيًا — بيستخدم دالة الحذف الأصلية لكل نوع (مش
+// remove() مباشرة) عشان يتنضّف أي ملف مرفوع على R2 مرتبط بيه كمان.
+export const adminRejectPendingItem = async (collection: PendingCollection, id: string): Promise<void> => {
+  switch (collection) {
+    case 'events': return adminDeleteEvent(id);
+    case 'articles': return adminDeleteArticle(id);
+    case 'programs': return adminDeleteProgram(id);
+    case 'governorates': return adminDeleteGovernorate(id);
+    case 'success_stories': return adminDeleteSuccessStory(id);
+    case 'gallery_images': return adminDeleteGalleryImage(id);
+    case 'gallery_albums': return adminDeleteAlbum(id);
+  }
+};
+
+/* ============ Admin: إعدادات الموقع (سوبر أدمن فقط) ============ */
+// القراءة العامة (getSiteSettings) منقولة إلى publicApi.ts زي باقي القراءات
+// العامة — بتحتاج تشتغل من أي مكان (فوتر، صفحة تواصل) بدون Firebase SDK.
+
+export const adminUpdateSiteSettings = async (payload: SiteSettings): Promise<void> => {
+  try {
+    await update(ref(db, 'site_settings'), payload as Record<string, unknown>);
+  } catch (err) {
+    throw translateFirebaseError(err);
   }
 };

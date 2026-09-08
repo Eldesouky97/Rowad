@@ -4,9 +4,20 @@ import { FormEvent, useEffect, useState } from 'react';
 import { adminGetSuccessStories, adminCreateSuccessStory, adminUpdateSuccessStory, adminDeleteSuccessStory, ApiException } from '@/lib/api';
 import type { SuccessStory } from '@/lib/types';
 import { PlusIcon, EditIcon, TrashIcon, UsersIcon } from '@/components/icons';
-import { GOVS, inputClass, labelClass, SectionCard, EmptyState, ErrorText, PublisherNote, type Notify } from './shared';
+import {
+  GOVS, inputClass, labelClass, SectionCard, Badge,
+  EmptyState, ErrorText, PublisherNote, PendingBadge, EditorReviewNotice, publishToast, type Notify,
+} from './shared';
 
-export default function SuccessStoriesManager({ canEdit, showToast }: { canEdit: boolean; showToast: Notify }) {
+export default function SuccessStoriesManager({
+  canEdit,
+  isSuperAdmin,
+  showToast,
+}: {
+  canEdit: boolean;
+  isSuperAdmin: boolean;
+  showToast: Notify;
+}) {
   const [items, setItems] = useState<SuccessStory[]>([]);
   const [editing, setEditing] = useState<SuccessStory | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -33,10 +44,10 @@ export default function SuccessStoriesManager({ canEdit, showToast }: { canEdit:
     try {
       if (editing) {
         await adminUpdateSuccessStory(editing.id, formData);
-        showToast('تم تحديث قصة النجاح');
+        showToast(publishToast(isSuperAdmin, 'تحديث', 'قصة النجاح'));
       } else {
         await adminCreateSuccessStory(formData);
-        showToast('تم إضافة قصة النجاح');
+        showToast(publishToast(isSuperAdmin, 'إضافة', 'قصة النجاح'));
       }
       closeForm();
       refresh();
@@ -67,6 +78,8 @@ export default function SuccessStoriesManager({ canEdit, showToast }: { canEdit:
         )
       }
     >
+      <EditorReviewNotice isSuperAdmin={isSuperAdmin} canEdit={canEdit} />
+
       {showForm && canEdit && (
         <form onSubmit={handleSubmit} className="mb-6 grid gap-4 rounded-xl bg-sand/60 p-5 sm:grid-cols-2">
           <div>
@@ -133,11 +146,19 @@ export default function SuccessStoriesManager({ canEdit, showToast }: { canEdit:
               </div>
               <p className="flex-1 text-sm italic text-ink/70">&quot;{s.quote}&quot;</p>
               {s.governorate && <p className="mt-3 text-xs font-bold text-ink/45">{s.governorate}</p>}
-              <PublisherNote item={s} className="mt-2" />
-              {canEdit && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <PublisherNote item={s} />
+                {!s.is_published && <Badge tone="neutral">غير منشورة</Badge>}
+                <PendingBadge item={s} />
+              </div>
+              {(canEdit || isSuperAdmin) && (
                 <div className="absolute left-3 top-3 flex gap-1 opacity-0 transition group-hover:opacity-100">
-                  <button onClick={() => openEdit(s)} className="rounded-lg bg-white p-1.5 text-ink/60 shadow hover:text-ink" aria-label="تعديل"><EditIcon className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => handleDelete(s.id)} className="rounded-lg bg-white p-1.5 text-rose-500 shadow hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-3.5 w-3.5" /></button>
+                  {canEdit && (
+                    <button onClick={() => openEdit(s)} className="rounded-lg bg-white p-1.5 text-ink/60 shadow hover:text-ink" aria-label="تعديل"><EditIcon className="h-3.5 w-3.5" /></button>
+                  )}
+                  {isSuperAdmin && (
+                    <button onClick={() => handleDelete(s.id)} className="rounded-lg bg-white p-1.5 text-rose-500 shadow hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-3.5 w-3.5" /></button>
+                  )}
                 </div>
               )}
             </div>

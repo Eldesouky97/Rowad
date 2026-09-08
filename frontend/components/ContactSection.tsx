@@ -1,19 +1,39 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
-import { sendContactMessage, ApiException } from '@/lib/api';
+import { FormEvent, useEffect, useState } from 'react';
+import { sendContactMessage, getSiteSettings, ApiException } from '@/lib/api';
 import { useToast } from '@/components/Toast';
-import { MailIcon, PhoneIcon, PinIcon } from '@/components/icons';
+import { MailIcon, PhoneIcon, PinIcon, LinkIcon } from '@/components/icons';
+import type { SiteSettings } from '@/lib/types';
 
 const GOVS = [
   'شمال سيناء', 'جنوب سيناء', 'أسوان', 'الوادي الجديد', 'مطروح',
   'البحر الأحمر', 'السويس', 'الإسماعيلية', 'القاهرة الكبرى', 'الشرقية', 'أخرى',
 ];
 
+const SOCIAL_LABELS: Record<string, string> = {
+  social_facebook: 'فيسبوك',
+  social_instagram: 'إنستجرام',
+  social_twitter: 'إكس',
+  social_youtube: 'يوتيوب',
+  social_whatsapp: 'واتساب',
+  social_linkedin: 'لينكدإن',
+  social_tiktok: 'تيك توك',
+};
+
 export default function ContactSection() {
   const { showToast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [settings, setSettings] = useState<SiteSettings>({});
+
+  useEffect(() => {
+    getSiteSettings().then(setSettings).catch(() => setSettings({}));
+  }, []);
+
+  const socialLinks = Object.entries(SOCIAL_LABELS)
+    .map(([key, label]) => ({ key, label, url: settings[key as keyof SiteSettings] as string | undefined }))
+    .filter((s) => s.url);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -57,23 +77,33 @@ export default function ContactSection() {
         <h3 className="mb-5 font-utility text-lg text-gold-2">بيانات التواصل</h3>
         <div className="flex items-center gap-3 py-3 text-sm">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-2/15 text-gold-2"><MailIcon className="h-4 w-4" /></span>
-          info@rowwad-borders.example
+          {settings.contact_email || 'info@rowwad-borders.example'}
         </div>
         <div className="flex items-center gap-3 border-t border-gold/15 py-3 text-sm">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-2/15 text-gold-2"><PhoneIcon className="h-4 w-4" /></span>
-          ٠٢ ١٢٣٤ ٥٦٧٨
+          {settings.contact_phone || '٠٢ ١٢٣٤ ٥٦٧٨'}
         </div>
         <div className="flex items-center gap-3 border-t border-gold/15 py-3 text-sm">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-2/15 text-gold-2"><PinIcon className="h-4 w-4" /></span>
-          مقر رئيسي بالقاهرة، ومكاتب تنسيق في المحافظات
+          {settings.contact_address || 'مقر رئيسي بالقاهرة، ومكاتب تنسيق في المحافظات'}
         </div>
-        <div className="mt-6 flex gap-2.5">
-          {['f', 'IG', 'X', 'YT'].map((s) => (
-            <a key={s} href="#" className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/35 font-utility text-xs font-extrabold text-gold-2 transition hover:bg-gold/15">
-              {s}
-            </a>
-          ))}
-        </div>
+        {socialLinks.length > 0 && (
+          <div className="mt-6 flex gap-2.5">
+            {socialLinks.map((s) => (
+              <a
+                key={s.key}
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={s.label}
+                title={s.label}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/35 text-gold-2 transition hover:bg-gold/15"
+              >
+                <LinkIcon className="h-4 w-4" />
+              </a>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="rounded-[20px] border border-gold/25 bg-white p-8">

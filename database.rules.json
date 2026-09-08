@@ -27,7 +27,7 @@
       ".read": true,
       ".indexOn": ["slug"],
       "$eventId": {
-        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || (root.child('admins').child(auth.uid).child('role').val() === 'editor' && newData.exists() && newData.child('is_published').val() === false))",
         ".validate": "newData.hasChildren(['title','category','governorate','location','starts_at','description','seats_total'])",
         "title":       { ".validate": "newData.isString() && newData.val().length > 0" },
         "slug":        { ".validate": "newData.isString()" },
@@ -78,7 +78,7 @@
       ".read": true,
       ".indexOn": ["slug"],
       "$articleId": {
-        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || (root.child('admins').child(auth.uid).child('role').val() === 'editor' && newData.exists() && newData.child('is_published').val() === false))",
         ".validate": "newData.hasChildren(['title','category','author','excerpt','content'])",
         "title":         { ".validate": "newData.isString() && newData.val().length > 0" },
         "slug":          { ".validate": "newData.isString()" },
@@ -103,7 +103,7 @@
     "programs": {
       ".read": true,
       "$programId": {
-        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || (root.child('admins').child(auth.uid).child('role').val() === 'editor' && newData.exists() && newData.child('is_published').val() === false))",
         ".validate": "newData.hasChildren(['title','category','description'])",
         "title":        { ".validate": "newData.isString() && newData.val().length > 0" },
         "category":     { ".validate": "newData.val() === 'التعليم' || newData.val() === 'السياحة' || newData.val() === 'التضامن' || newData.val() === 'الزراعة' || newData.val() === 'الإعلام' || newData.val() === 'الصحة'" },
@@ -121,7 +121,7 @@
       ".read": true,
       ".indexOn": ["slug"],
       "$governorateId": {
-        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || (root.child('admins').child(auth.uid).child('role').val() === 'editor' && newData.exists() && newData.child('is_published').val() === false))",
         ".validate": "newData.hasChildren(['name','tagline','population'])",
         "name":                  { ".validate": "newData.isString() && newData.val().length > 0" },
         "slug":                  { ".validate": "newData.isString()" },
@@ -143,7 +143,7 @@
     "success_stories": {
       ".read": true,
       "$storyId": {
-        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || (root.child('admins').child(auth.uid).child('role').val() === 'editor' && newData.exists() && newData.child('is_published').val() === false))",
         ".validate": "newData.hasChildren(['name','role_title','quote'])",
         "name":         { ".validate": "newData.isString() && newData.val().length > 0" },
         "role_title":   { ".validate": "newData.isString()" },
@@ -162,7 +162,7 @@
     "gallery_albums": {
       ".read": true,
       "$albumId": {
-        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || (root.child('admins').child(auth.uid).child('role').val() === 'editor' && newData.exists() && newData.child('is_published').val() === false))",
         ".validate": "newData.hasChildren(['title'])",
         "title":        { ".validate": "newData.isString() && newData.val().length > 0" },
         "description":  { ".validate": "!newData.exists() || newData.isString()" },
@@ -178,7 +178,7 @@
       ".read": true,
       ".indexOn": ["album_id"],
       "$imageId": {
-        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || root.child('admins').child(auth.uid).child('role').val() === 'editor')",
+        ".write": "auth != null && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || (root.child('admins').child(auth.uid).child('role').val() === 'editor' && newData.exists() && newData.child('is_published').val() === false))",
         ".validate": "newData.hasChildren(['title'])",
         "title":        { ".validate": "newData.isString() && newData.val().length > 0" },
         "caption":      { ".validate": "!newData.exists() || newData.isString()" },
@@ -213,6 +213,31 @@
         "provider":          { ".validate": "!newData.exists() || newData.isString()" },
         "created_at":        { ".validate": true },
         "last_login_at":     { ".validate": true }
+      }
+    },
+
+    "site_settings": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).child('role').val() === 'super_admin'",
+      "contact_phone":    { ".validate": "!newData.exists() || newData.isString()" },
+      "contact_email":    { ".validate": "!newData.exists() || newData.isString()" },
+      "contact_address":  { ".validate": "!newData.exists() || newData.isString()" },
+      "social_facebook":  { ".validate": "!newData.exists() || newData.isString()" },
+      "social_instagram": { ".validate": "!newData.exists() || newData.isString()" },
+      "social_twitter":   { ".validate": "!newData.exists() || newData.isString()" },
+      "social_youtube":   { ".validate": "!newData.exists() || newData.isString()" },
+      "social_whatsapp":  { ".validate": "!newData.exists() || newData.isString()" },
+      "social_linkedin":  { ".validate": "!newData.exists() || newData.isString()" },
+      "social_tiktok":    { ".validate": "!newData.exists() || newData.isString()" },
+      "sections_visibility": {
+        "about":         { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "programs":      { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "articles":      { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "events":        { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "testimonials":  { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "gallery":       { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "governorates":  { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "contact":       { ".validate": "!newData.exists() || newData.isBoolean()" }
       }
     },
 

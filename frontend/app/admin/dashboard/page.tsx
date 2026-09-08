@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminLogout } from '@/lib/api';
+import { adminGetPendingReviewItems, adminLogout } from '@/lib/api';
 import { onAdminAuthChange } from '@/lib/adminAuth';
 import { useToast } from '@/components/Toast';
 import type { AdminUser } from '@/lib/types';
 import {
   GridIcon, CalendarIcon, BookIcon, SeatIcon, MailIcon, HandsIcon, PinIcon, StarIcon,
-  ImageIcon, UsersIcon, LogoutIcon, MenuIcon, CloseIcon,
+  ImageIcon, UsersIcon, LogoutIcon, MenuIcon, CloseIcon, CheckSquareIcon, SettingsIcon,
 } from '@/components/icons';
 import { ROLE_LABELS } from './_components/shared';
 import OverviewSection from './_components/OverviewSection';
@@ -21,10 +21,13 @@ import GovernoratesManager from './_components/GovernoratesManager';
 import SuccessStoriesManager from './_components/SuccessStoriesManager';
 import GalleryManager from './_components/GalleryManager';
 import UsersManager from './_components/UsersManager';
+import PendingReviewManager from './_components/PendingReviewManager';
+import SiteSettingsManager from './_components/SiteSettingsManager';
 
 type SectionKey =
   | 'overview' | 'events' | 'articles' | 'bookings' | 'messages'
-  | 'programs' | 'governorates' | 'stories' | 'gallery' | 'users';
+  | 'programs' | 'governorates' | 'stories' | 'gallery' | 'users'
+  | 'pending' | 'settings';
 
 interface NavItem {
   key: SectionKey;
@@ -35,6 +38,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { key: 'overview', label: 'نظرة عامة', icon: GridIcon },
+  { key: 'pending', label: 'بانتظار المراجعة', icon: CheckSquareIcon, superAdminOnly: true },
   { key: 'events', label: 'الفعاليات', icon: CalendarIcon },
   { key: 'articles', label: 'المقالات', icon: BookIcon },
   { key: 'bookings', label: 'الحجوزات', icon: SeatIcon },
@@ -44,6 +48,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'stories', label: 'قصص النجاح', icon: StarIcon },
   { key: 'gallery', label: 'معرض الصور', icon: ImageIcon },
   { key: 'users', label: 'المستخدمون', icon: UsersIcon, superAdminOnly: true },
+  { key: 'settings', label: 'إعدادات الموقع', icon: SettingsIcon, superAdminOnly: true },
 ];
 
 export default function AdminDashboardPage() {
@@ -53,6 +58,7 @@ export default function AdminDashboardPage() {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [section, setSection] = useState<SectionKey>('overview');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     const unsub = onAdminAuthChange((u) => {
@@ -62,6 +68,11 @@ export default function AdminDashboardPage() {
     });
     return unsub;
   }, [router]);
+
+  useEffect(() => {
+    if (user?.role !== 'super_admin') return;
+    adminGetPendingReviewItems().then((items) => setPendingCount(items.length)).catch(() => setPendingCount(0));
+  }, [user, section]);
 
   async function handleLogout() {
     await adminLogout();
@@ -95,6 +106,7 @@ export default function AdminDashboardPage() {
           user={user}
           section={section}
           visibleNav={visibleNav}
+          pendingCount={pendingCount}
           onNavigate={goTo}
           onLogout={handleLogout}
         />
@@ -116,6 +128,7 @@ export default function AdminDashboardPage() {
               user={user}
               section={section}
               visibleNav={visibleNav}
+              pendingCount={pendingCount}
               onNavigate={goTo}
               onLogout={handleLogout}
             />
@@ -142,15 +155,17 @@ export default function AdminDashboardPage() {
           </div>
 
           {section === 'overview' && <OverviewSection userName={user.name} />}
-          {section === 'events' && <EventsManager canEdit={canEdit} showToast={showToast} />}
-          {section === 'articles' && <ArticlesManager canEdit={canEdit} showToast={showToast} />}
+          {section === 'pending' && isSuperAdmin && <PendingReviewManager showToast={showToast} />}
+          {section === 'events' && <EventsManager canEdit={canEdit} isSuperAdmin={isSuperAdmin} showToast={showToast} />}
+          {section === 'articles' && <ArticlesManager canEdit={canEdit} isSuperAdmin={isSuperAdmin} showToast={showToast} />}
           {section === 'bookings' && <BookingsCard />}
           {section === 'messages' && <ContactMessagesCard />}
-          {section === 'programs' && <ProgramsManager canEdit={canEdit} showToast={showToast} />}
-          {section === 'governorates' && <GovernoratesManager canEdit={canEdit} showToast={showToast} />}
-          {section === 'stories' && <SuccessStoriesManager canEdit={canEdit} showToast={showToast} />}
-          {section === 'gallery' && <GalleryManager canEdit={canEdit} showToast={showToast} />}
+          {section === 'programs' && <ProgramsManager canEdit={canEdit} isSuperAdmin={isSuperAdmin} showToast={showToast} />}
+          {section === 'governorates' && <GovernoratesManager canEdit={canEdit} isSuperAdmin={isSuperAdmin} showToast={showToast} />}
+          {section === 'stories' && <SuccessStoriesManager canEdit={canEdit} isSuperAdmin={isSuperAdmin} showToast={showToast} />}
+          {section === 'gallery' && <GalleryManager canEdit={canEdit} isSuperAdmin={isSuperAdmin} showToast={showToast} />}
           {section === 'users' && isSuperAdmin && <UsersManager currentUserId={user.id} showToast={showToast} />}
+          {section === 'settings' && isSuperAdmin && <SiteSettingsManager showToast={showToast} />}
         </main>
       </div>
     </div>
@@ -161,12 +176,14 @@ function SidebarContent({
   user,
   section,
   visibleNav,
+  pendingCount,
   onNavigate,
   onLogout,
 }: {
   user: AdminUser;
   section: SectionKey;
   visibleNav: NavItem[];
+  pendingCount: number;
   onNavigate: (key: SectionKey) => void;
   onLogout: () => void;
 }) {
@@ -193,7 +210,12 @@ function SidebarContent({
               }`}
             >
               <Icon className="h-[18px] w-[18px] shrink-0" />
-              {item.label}
+              <span className="flex-1 text-right">{item.label}</span>
+              {item.key === 'pending' && pendingCount > 0 && (
+                <span className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${active ? 'bg-white text-violet-700' : 'bg-rose-500 text-white'}`}>
+                  {pendingCount}
+                </span>
+              )}
             </button>
           );
         })}

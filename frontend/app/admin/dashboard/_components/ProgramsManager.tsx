@@ -4,9 +4,20 @@ import { FormEvent, useEffect, useState } from 'react';
 import { adminGetPrograms, adminCreateProgram, adminUpdateProgram, adminDeleteProgram, ApiException } from '@/lib/api';
 import type { Program } from '@/lib/types';
 import { PlusIcon, EditIcon, TrashIcon } from '@/components/icons';
-import { PROGRAM_CATEGORIES, ART_THEMES, inputClass, labelClass, SectionCard, EmptyState, ErrorText, PublisherNote, type Notify } from './shared';
+import {
+  PROGRAM_CATEGORIES, ART_THEMES, inputClass, labelClass, SectionCard, Badge,
+  EmptyState, ErrorText, PublisherNote, PendingBadge, EditorReviewNotice, publishToast, type Notify,
+} from './shared';
 
-export default function ProgramsManager({ canEdit, showToast }: { canEdit: boolean; showToast: Notify }) {
+export default function ProgramsManager({
+  canEdit,
+  isSuperAdmin,
+  showToast,
+}: {
+  canEdit: boolean;
+  isSuperAdmin: boolean;
+  showToast: Notify;
+}) {
   const [items, setItems] = useState<Program[]>([]);
   const [editing, setEditing] = useState<Program | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -39,10 +50,10 @@ export default function ProgramsManager({ canEdit, showToast }: { canEdit: boole
     try {
       if (editing) {
         await adminUpdateProgram(editing.id, payload);
-        showToast('تم تحديث البرنامج');
+        showToast(publishToast(isSuperAdmin, 'تحديث', 'البرنامج'));
       } else {
         await adminCreateProgram(payload);
-        showToast('تم إضافة البرنامج');
+        showToast(publishToast(isSuperAdmin, 'إضافة', 'البرنامج'));
       }
       closeForm();
       refresh();
@@ -73,6 +84,8 @@ export default function ProgramsManager({ canEdit, showToast }: { canEdit: boole
         )
       }
     >
+      <EditorReviewNotice isSuperAdmin={isSuperAdmin} canEdit={canEdit} />
+
       {showForm && canEdit && (
         <form onSubmit={handleSubmit} className="mb-6 grid gap-4 rounded-xl bg-sand/60 p-5 sm:grid-cols-2">
           <div>
@@ -125,7 +138,8 @@ export default function ProgramsManager({ canEdit, showToast }: { canEdit: boole
                 <th className="py-2.5 pl-4">القطاع</th>
                 <th className="py-2.5 pl-4">الترتيب</th>
                 <th className="py-2.5 pl-4">نُشر بواسطة</th>
-                {canEdit && <th className="py-2.5"></th>}
+                <th className="py-2.5 pl-4">الحالة</th>
+                {(canEdit || isSuperAdmin) && <th className="py-2.5"></th>}
               </tr>
             </thead>
             <tbody>
@@ -135,11 +149,21 @@ export default function ProgramsManager({ canEdit, showToast }: { canEdit: boole
                   <td className="py-3 pl-4 text-ink/60">{p.category}</td>
                   <td className="py-3 pl-4 text-ink/60">{p.order}</td>
                   <td className="py-3 pl-4 text-ink/45"><PublisherNote item={p} /></td>
-                  {canEdit && (
+                  <td className="py-3 pl-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge tone={p.is_published ? 'success' : 'neutral'}>{p.is_published ? 'منشور' : 'غير منشور'}</Badge>
+                      <PendingBadge item={p} />
+                    </div>
+                  </td>
+                  {(canEdit || isSuperAdmin) && (
                     <td className="py-3">
                       <div className="flex justify-end gap-1.5">
-                        <button onClick={() => openEdit(p)} className="rounded-lg p-2 text-ink/50 hover:bg-sand hover:text-ink" aria-label="تعديل"><EditIcon className="h-4 w-4" /></button>
-                        <button onClick={() => handleDelete(p.id)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-4 w-4" /></button>
+                        {canEdit && (
+                          <button onClick={() => openEdit(p)} className="rounded-lg p-2 text-ink/50 hover:bg-sand hover:text-ink" aria-label="تعديل"><EditIcon className="h-4 w-4" /></button>
+                        )}
+                        {isSuperAdmin && (
+                          <button onClick={() => handleDelete(p.id)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-4 w-4" /></button>
+                        )}
                       </div>
                     </td>
                   )}

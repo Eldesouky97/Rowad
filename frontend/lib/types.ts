@@ -1,12 +1,16 @@
 /**
  * حقول مشتركة لكل محتوى قابل للنشر: مين الأدمن اللي نشره فعليًا (created_by_*
- * — يتسجّل تلقائيًا، بيظهر بلوحة التحكم بس وليس للجمهور) و"اسم الكاتب" (author
- * — اختياري، الأدمن بيكتبه بنفسه ليظهر للجمهور، مش بالضرورة نفس اسم الأدمن).
+ * — يتسجّل تلقائيًا، بيظهر بلوحة التحكم بس وليس للجمهور)، "اسم الكاتب" (author
+ * — اختياري، الأدمن بيكتبه بنفسه ليظهر للجمهور، مش بالضرورة نفس اسم الأدمن)،
+ * و pending_review — true لو المحرر (editor) هو اللي أنشأ/عدّل العنصر: بيتحفظ
+ * تلقائيًا is_published=false لحد ما سوبر أدمن يراجعه وينشره من قسم "بانتظار
+ * المراجعة" (القيد ده مفروض على مستوى database.rules.json نفسها، مش بس الواجهة).
  */
 export interface Publishable {
   created_by_uid?: string;
   created_by_name?: string;
   author?: string;
+  pending_review?: boolean;
 }
 
 export interface EventItem extends Publishable {
@@ -27,6 +31,8 @@ export interface EventItem extends Publishable {
   organizer: string | null;
   status: 'upcoming' | 'past';
   art_theme: 'art-1' | 'art-2' | 'art-3' | 'art-4';
+  storage_path?: string | null;
+  image_url?: string | null;
   is_published: boolean;
 }
 
@@ -202,6 +208,37 @@ export interface VisitorProfilePayload {
   age?: number;
   education?: string;
   committee?: string;
+}
+
+/** أقسام الصفحة الرئيسية اللي ممكن السوبر أدمن يخفيها/يظهرها من إعدادات الموقع */
+export interface SectionsVisibility {
+  about?: boolean;
+  programs?: boolean;
+  articles?: boolean;
+  events?: boolean;
+  testimonials?: boolean;
+  gallery?: boolean;
+  governorates?: boolean;
+  contact?: boolean;
+}
+
+/**
+ * إعدادات الموقع العامة — سجل واحد (singleton) تحت site_settings/ في قاعدة
+ * البيانات، مش مجموعة. يقرأه أي زائر (الفوتر وصفحة التواصل ونظهار/إخفاء
+ * أقسام الصفحة الرئيسية)، ويعدّله السوبر أدمن بس من قسم "إعدادات الموقع".
+ */
+export interface SiteSettings {
+  contact_phone?: string;
+  contact_email?: string;
+  contact_address?: string;
+  social_facebook?: string;
+  social_instagram?: string;
+  social_twitter?: string;
+  social_youtube?: string;
+  social_whatsapp?: string;
+  social_linkedin?: string;
+  social_tiktok?: string;
+  sections_visibility?: SectionsVisibility;
 }
 
 export interface ApiError {

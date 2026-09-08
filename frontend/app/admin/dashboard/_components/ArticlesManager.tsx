@@ -6,10 +6,18 @@ import type { Article } from '@/lib/types';
 import { PlusIcon, EditIcon, TrashIcon } from '@/components/icons';
 import {
   ARTICLE_CATEGORIES, GOVS, inputClass, labelClass,
-  SectionCard, Badge, EmptyState, ErrorText, PublisherNote, type Notify,
+  SectionCard, Badge, EmptyState, ErrorText, PublisherNote, PendingBadge, EditorReviewNotice, publishToast, type Notify,
 } from './shared';
 
-export default function ArticlesManager({ canEdit, showToast }: { canEdit: boolean; showToast: Notify }) {
+export default function ArticlesManager({
+  canEdit,
+  isSuperAdmin,
+  showToast,
+}: {
+  canEdit: boolean;
+  isSuperAdmin: boolean;
+  showToast: Notify;
+}) {
   const [items, setItems] = useState<Article[]>([]);
   const [editing, setEditing] = useState<Article | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -47,10 +55,10 @@ export default function ArticlesManager({ canEdit, showToast }: { canEdit: boole
     try {
       if (editing) {
         await adminUpdateArticle(editing.id, payload);
-        showToast('تم تحديث المقال');
+        showToast(publishToast(isSuperAdmin, 'تحديث', 'المقال'));
       } else {
         await adminCreateArticle(payload as never);
-        showToast('تم نشر المقال بنجاح');
+        showToast(publishToast(isSuperAdmin, 'إضافة', 'المقال'));
       }
       closeForm();
       refresh();
@@ -81,6 +89,8 @@ export default function ArticlesManager({ canEdit, showToast }: { canEdit: boole
         )
       }
     >
+      <EditorReviewNotice isSuperAdmin={isSuperAdmin} canEdit={canEdit} />
+
       {showForm && canEdit && (
         <form onSubmit={handleSubmit} className="mb-6 grid gap-4 rounded-xl bg-sand/60 p-5 sm:grid-cols-2">
           <div>
@@ -115,7 +125,7 @@ export default function ArticlesManager({ canEdit, showToast }: { canEdit: boole
             <label className="flex items-center gap-2 text-sm font-bold text-ink/70">
               <input type="checkbox" name="is_featured" defaultChecked={editing?.is_featured} /> مقال مميّز
             </label>
-            {editing && (
+            {isSuperAdmin && editing && (
               <label className="flex items-center gap-2 text-sm font-bold text-ink/70">
                 <input type="checkbox" name="is_published" defaultChecked={editing.is_published} /> منشور
               </label>
@@ -153,7 +163,7 @@ export default function ArticlesManager({ canEdit, showToast }: { canEdit: boole
                 <th className="py-2.5 pl-4">الكاتب</th>
                 <th className="py-2.5 pl-4">نُشر بواسطة</th>
                 <th className="py-2.5 pl-4">الحالة</th>
-                {canEdit && <th className="py-2.5"></th>}
+                {(canEdit || isSuperAdmin) && <th className="py-2.5"></th>}
               </tr>
             </thead>
             <tbody>
@@ -163,12 +173,21 @@ export default function ArticlesManager({ canEdit, showToast }: { canEdit: boole
                   <td className="py-3 pl-4 text-ink/60">{a.category}</td>
                   <td className="py-3 pl-4 text-ink/60">{a.author}</td>
                   <td className="py-3 pl-4 text-ink/45"><PublisherNote item={a} /></td>
-                  <td className="py-3 pl-4"><Badge tone={a.is_published ? 'success' : 'neutral'}>{a.is_published ? 'منشور' : 'غير منشور'}</Badge></td>
-                  {canEdit && (
+                  <td className="py-3 pl-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge tone={a.is_published ? 'success' : 'neutral'}>{a.is_published ? 'منشور' : 'غير منشور'}</Badge>
+                      <PendingBadge item={a} />
+                    </div>
+                  </td>
+                  {(canEdit || isSuperAdmin) && (
                     <td className="py-3">
                       <div className="flex justify-end gap-1.5">
-                        <button onClick={() => openEdit(a)} className="rounded-lg p-2 text-ink/50 hover:bg-sand hover:text-ink" aria-label="تعديل"><EditIcon className="h-4 w-4" /></button>
-                        <button onClick={() => handleDelete(a.id)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-4 w-4" /></button>
+                        {canEdit && (
+                          <button onClick={() => openEdit(a)} className="rounded-lg p-2 text-ink/50 hover:bg-sand hover:text-ink" aria-label="تعديل"><EditIcon className="h-4 w-4" /></button>
+                        )}
+                        {isSuperAdmin && (
+                          <button onClick={() => handleDelete(a.id)} className="rounded-lg p-2 text-rose-500 hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-4 w-4" /></button>
+                        )}
                       </div>
                     </td>
                   )}

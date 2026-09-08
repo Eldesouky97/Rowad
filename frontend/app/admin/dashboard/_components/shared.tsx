@@ -135,6 +135,27 @@ export function PublisherNote({ item, className = '' }: { item: Publishable; cla
   );
 }
 
+/** تنبيه ثابت للمحرر يوضّح إن أي إضافة/تعديل هيتحفظ بانتظار مراجعة سوبر أدمن */
+export function EditorReviewNotice({ isSuperAdmin, canEdit }: { isSuperAdmin: boolean; canEdit: boolean }) {
+  if (isSuperAdmin || !canEdit) return null;
+  return (
+    <p className="mb-5 rounded-xl bg-amber-50 px-4 py-3 text-xs font-bold text-amber-700">
+      بصفتك محرر، أي حاجة تضيفها أو تعدّلها هتتحفظ "بانتظار المراجعة" لحد ما سوبر أدمن يوافق عليها.
+    </p>
+  );
+}
+
+/** شارة "بانتظار المراجعة" — تظهر بس على العناصر اللي محرر أنشأها/عدّلها ولسه مش موافَق عليها */
+export function PendingBadge({ item }: { item: Publishable }) {
+  if (!item.pending_review) return null;
+  return <Badge tone="warning">بانتظار المراجعة</Badge>;
+}
+
+/** رسالة نجاح موحّدة تراعي إن المحرر بيبعت للمراجعة مش بينشر مباشرة */
+export function publishToast(isSuperAdmin: boolean, action: 'إضافة' | 'تحديث', noun: string): string {
+  return isSuperAdmin ? `تم ${action} ${noun}` : `تم إرسال ${noun} لانتظار المراجعة`;
+}
+
 /** صندوق بحث دائري موحّد لأقسام الجداول */
 export function SearchBox({
   value,

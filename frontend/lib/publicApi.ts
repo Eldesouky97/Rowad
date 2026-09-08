@@ -4,7 +4,7 @@
 // وقت تحميل الموديول، وهذا يفشل في بيئة الخادم. القراءات هنا REST خالصة
 // (fetch عادي عبر firebaseHelpers، وهي بدورها لا تستورد Firebase SDK إطلاقًا).
 import { objectToArray, restGet, restPost, computeEventFields, ApiException } from './firebaseHelpers';
-import type { Article, EventItem, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum, ContactMessagePayload } from './types';
+import type { Article, EventItem, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum, ContactMessagePayload, SiteSettings } from './types';
 
 export { ApiException };
 
@@ -105,4 +105,10 @@ export const getGalleryAlbums = async (): Promise<GalleryAlbum[]> => {
   return objectToArray(raw)
     .filter((a) => a.is_published)
     .sort((a, b) => a.order - b.order) as GalleryAlbum[];
+};
+
+/** إعدادات الموقع العامة (تواصل، سوشيال ميديا، إظهار/إخفاء أقسام) — سجل واحد لا مجموعة */
+export const getSiteSettings = async (): Promise<SiteSettings> => {
+  const raw = await restGet<SiteSettings>('site_settings');
+  return raw || {};
 };

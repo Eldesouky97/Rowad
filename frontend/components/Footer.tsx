@@ -1,14 +1,35 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { visitorSignOut } from '@/lib/api';
+import { visitorSignOut, getSiteSettings } from '@/lib/api';
 import { useVisitorProfile } from '@/lib/useVisitorProfile';
 import UserAvatar from './UserAvatar';
-import { GridIcon, LogoutIcon } from './icons';
+import { GridIcon, LogoutIcon, LinkIcon, PhoneIcon, MailIcon, PinIcon } from './icons';
+import type { SiteSettings } from '@/lib/types';
+
+const SOCIAL_LABELS: Record<string, string> = {
+  social_facebook: 'فيسبوك',
+  social_instagram: 'إنستجرام',
+  social_twitter: 'إكس',
+  social_youtube: 'يوتيوب',
+  social_whatsapp: 'واتساب',
+  social_linkedin: 'لينكدإن',
+  social_tiktok: 'تيك توك',
+};
 
 export default function Footer() {
   const { authUser, isAdmin, loading, displayName, photoUrl } = useVisitorProfile();
+  const [settings, setSettings] = useState<SiteSettings>({});
+
+  useEffect(() => {
+    getSiteSettings().then(setSettings).catch(() => setSettings({}));
+  }, []);
+
+  const socialLinks = Object.entries(SOCIAL_LABELS)
+    .map(([key, label]) => ({ key, label, url: settings[key as keyof SiteSettings] as string | undefined }))
+    .filter((s) => s.url);
 
   return (
     <footer className="bg-[#0F1B2E] px-5 pb-6 pt-14 text-cream/75 sm:px-6">
@@ -65,9 +86,30 @@ export default function Footer() {
         <div>
           <h5 className="mb-4 font-utility text-sm text-cream">تواصل</h5>
           <ul className="space-y-2 text-sm">
-            <li>info@rowwad-borders.example</li>
-            <li>٠٢ ١٢٣٤ ٥٦٧٨</li>
+            <li className="flex items-center gap-2"><MailIcon className="h-3.5 w-3.5 shrink-0 opacity-60" /> {settings.contact_email || 'info@rowwad-borders.example'}</li>
+            <li className="flex items-center gap-2"><PhoneIcon className="h-3.5 w-3.5 shrink-0 opacity-60" /> {settings.contact_phone || '٠٢ ١٢٣٤ ٥٦٧٨'}</li>
+            {settings.contact_address && (
+              <li className="flex items-center gap-2"><PinIcon className="h-3.5 w-3.5 shrink-0 opacity-60" /> {settings.contact_address}</li>
+            )}
           </ul>
+
+          {socialLinks.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {socialLinks.map((s) => (
+                <a
+                  key={s.key}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.label}
+                  title={s.label}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/20 text-cream/70 transition hover:border-gold-2 hover:text-gold-2"
+                >
+                  <LinkIcon className="h-3.5 w-3.5" />
+                </a>
+              ))}
+            </div>
+          )}
 
           {/* حالة الحساب — نفس بيانات الهيدر، حتى تكون التجربة متسقة بعد تسجيل الدخول */}
           {!loading && (

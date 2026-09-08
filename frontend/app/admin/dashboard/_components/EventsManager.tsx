@@ -16,7 +16,15 @@ const ART_BG: Record<string, string> = {
   'art-4': 'from-night-3 to-night',
 };
 
-export default function EventsManager({ canEdit, showToast }: { canEdit: boolean; showToast: Notify }) {
+export default function EventsManager({
+  canEdit,
+  isSuperAdmin,
+  showToast,
+}: {
+  canEdit: boolean;
+  isSuperAdmin: boolean;
+  showToast: Notify;
+}) {
   const [items, setItems] = useState<EventItem[]>([]);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<EventItem | null>(null);
@@ -54,32 +62,18 @@ export default function EventsManager({ canEdit, showToast }: { canEdit: boolean
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const form = new FormData(e.currentTarget);
-    const payload: Record<string, unknown> = {
-      title: String(form.get('title') || '').trim(),
-      category: String(form.get('category') || '').trim(),
-      governorate: String(form.get('governorate') || GOVS[0]),
-      location: String(form.get('location') || '').trim(),
-      mode: String(form.get('mode') || EVENT_MODES[0]),
-      starts_at: String(form.get('starts_at') || ''),
-      ends_at: String(form.get('ends_at') || '') || undefined,
-      description: String(form.get('description') || '').trim(),
-      seats_total: Number(form.get('seats_total') || 1),
-      price: String(form.get('price') || '').trim() || undefined,
-      organizer: String(form.get('organizer') || '').trim() || undefined,
-      art_theme: String(form.get('art_theme') || 'art-1'),
-      author: String(form.get('author') || '').trim() || undefined,
-    };
-    if (editing) payload.is_published = form.get('is_published') === 'on';
+    const formData = new FormData(e.currentTarget);
+    const imageEntry = formData.get('image');
+    if (imageEntry instanceof File && imageEntry.size === 0) formData.delete('image');
 
     setSubmitting(true);
     try {
       if (editing) {
-        await adminUpdateEvent(editing.id, payload);
-        showToast('تم تحديث الفعالية');
+        await adminUpdateEvent(editing.id, formData);
+        showToast(isSuperAdmin ? 'تم تحديث الفعالية' : 'تم إرسال التعديلات لانتظار المراجعة');
       } else {
-        await adminCreateEvent(payload as never);
-        showToast('تم إضافة الفعالية');
+        await adminCreateEvent(formData);
+        showToast(isSuperAdmin ? 'تم إضافة الفعالية' : 'تم إرسال الفعالية لانتظار المراجعة');
       }
       closeForm();
       refresh();
@@ -116,6 +110,12 @@ export default function EventsManager({ canEdit, showToast }: { canEdit: boolean
         </div>
       }
     >
+      {!isSuperAdmin && canEdit && (
+        <p className="mb-5 rounded-xl bg-amber-50 px-4 py-3 text-xs font-bold text-amber-700">
+          بصفتك محرر، أي فعالية تضيفها أو تعدّلها هتتحفظ "بانتظار المراجعة" لحد ما سوبر أدمن يوافق عليها.
+        </p>
+      )}
+
       {showForm && canEdit && (
         <form onSubmit={handleSubmit} className="mb-6 grid gap-4 rounded-xl bg-sand/60 p-5 sm:grid-cols-2">
           <div>
@@ -163,7 +163,7 @@ export default function EventsManager({ canEdit, showToast }: { canEdit: boolean
             <input name="organizer" defaultValue={editing?.organizer ?? ''} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>نمط التصميم</label>
+            <label className={labelClass}>نمط التصميم (عند عدم وجود صورة)</label>
             <select name="art_theme" defaultValue={editing?.art_theme ?? 'art-1'} className={inputClass}>
               {ART_THEMES.map((a) => <option key={a}>{a}</option>)}
             </select>
@@ -172,11 +172,15 @@ export default function EventsManager({ canEdit, showToast }: { canEdit: boolean
             <label className={labelClass}>اسم الكاتب (اختياري — يظهر للجمهور)</label>
             <input name="author" defaultValue={editing?.author ?? ''} placeholder="مثال: فريق الفعاليات" className={inputClass} />
           </div>
-          {editing && (
+          {isSuperAdmin && editing && (
             <label className="flex items-center gap-2 self-end pb-2.5 text-sm font-bold text-ink/70">
               <input type="checkbox" name="is_published" defaultChecked={editing.is_published} /> منشورة
             </label>
           )}
+          <div className="sm:col-span-2">
+            <label className={labelClass}>صورة الفعالية (اختياري)</label>
+            <input name="image" type="file" accept="image/*" className={inputClass} />
+          </div>
           <div className="sm:col-span-2">
             <label className={labelClass}>الوصف</label>
             <textarea name="description" required rows={3} defaultValue={editing?.description} className={inputClass} />
@@ -200,13 +204,21 @@ export default function EventsManager({ canEdit, showToast }: { canEdit: boolean
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map((ev) => (
             <div key={ev.id} className="group relative flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
-              <div className={`flex h-24 items-center justify-center bg-gradient-to-br text-white ${ART_BG[ev.art_theme]}`}>
-                <CalendarIcon className="h-8 w-8 opacity-80" />
-              </div>
+              {ev.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={ev.image_url} alt={ev.title} className="h-24 w-full object-cover" />
+              ) : (
+                <div className={`flex h-24 items-center justify-center bg-gradient-to-br text-white ${ART_BG[ev.art_theme]}`}>
+                  <CalendarIcon className="h-8 w-8 opacity-80" />
+                </div>
+              )}
               <div className="flex flex-1 flex-col gap-2 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-display text-sm font-bold leading-snug">{ev.title}</h3>
-                  <Badge tone={ev.is_published ? 'success' : 'neutral'}>{ev.is_published ? 'منشورة' : 'غير منشورة'}</Badge>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge tone={ev.is_published ? 'success' : 'neutral'}>{ev.is_published ? 'منشورة' : 'غير منشورة'}</Badge>
+                    {ev.pending_review && <Badge tone="warning">بانتظار المراجعة</Badge>}
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-3 text-xs text-ink/55">
                   <span className="flex items-center gap-1"><PinIcon className="h-3.5 w-3.5" /> {ev.governorate}</span>
@@ -215,10 +227,14 @@ export default function EventsManager({ canEdit, showToast }: { canEdit: boolean
                 </div>
                 <PublisherNote item={ev} className="mt-auto pt-1" />
               </div>
-              {canEdit && (
+              {(canEdit || isSuperAdmin) && (
                 <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-2 opacity-0 transition group-hover:opacity-100">
-                  <button onClick={() => openEdit(ev)} className="rounded-lg bg-white/90 p-1.5 text-ink/60 shadow hover:text-ink" aria-label="تعديل"><EditIcon className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => handleDelete(ev.id)} className="rounded-lg bg-white/90 p-1.5 text-rose-500 shadow hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-3.5 w-3.5" /></button>
+                  {canEdit && (
+                    <button onClick={() => openEdit(ev)} className="rounded-lg bg-white/90 p-1.5 text-ink/60 shadow hover:text-ink" aria-label="تعديل"><EditIcon className="h-3.5 w-3.5" /></button>
+                  )}
+                  {isSuperAdmin && (
+                    <button onClick={() => handleDelete(ev.id)} className="rounded-lg bg-white/90 p-1.5 text-rose-500 shadow hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-3.5 w-3.5" /></button>
+                  )}
                 </div>
               )}
             </div>

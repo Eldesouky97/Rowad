@@ -19,7 +19,10 @@ import {
   PlusIcon, EditIcon, TrashIcon, ImageIcon, CloseIcon,
   UploadIcon, CheckSquareIcon, LayersIcon, CheckIcon,
 } from '@/components/icons';
-import { ART_THEMES, inputClass, labelClass, SectionCard, Badge, EmptyState, ErrorText, PublisherNote, type Notify } from './shared';
+import {
+  ART_THEMES, inputClass, labelClass, SectionCard, Badge,
+  EmptyState, ErrorText, PublisherNote, PendingBadge, EditorReviewNotice, publishToast, type Notify,
+} from './shared';
 
 const ART_BG: Record<string, string> = {
   'art-1': 'from-sea to-[#0a4247]',
@@ -28,7 +31,15 @@ const ART_BG: Record<string, string> = {
   'art-4': 'from-night-3 to-night',
 };
 
-export default function GalleryManager({ canEdit, showToast }: { canEdit: boolean; showToast: Notify }) {
+export default function GalleryManager({
+  canEdit,
+  isSuperAdmin,
+  showToast,
+}: {
+  canEdit: boolean;
+  isSuperAdmin: boolean;
+  showToast: Notify;
+}) {
   const [items, setItems] = useState<GalleryImage[]>([]);
   const [albums, setAlbums] = useState<GalleryAlbum[]>([]);
   const [albumFilter, setAlbumFilter] = useState<string>('all');
@@ -92,10 +103,10 @@ export default function GalleryManager({ canEdit, showToast }: { canEdit: boolea
     try {
       if (editing) {
         await adminUpdateGalleryImage(editing.id, formData);
-        showToast('تم تحديث الصورة');
+        showToast(publishToast(isSuperAdmin, 'تحديث', 'الصورة'));
       } else {
         await adminCreateGalleryImage(formData);
-        showToast('تم إضافة الصورة');
+        showToast(publishToast(isSuperAdmin, 'إضافة', 'الصورة'));
       }
       closeForm();
       refreshImages();
@@ -132,7 +143,7 @@ export default function GalleryManager({ canEdit, showToast }: { canEdit: boolea
         { album_id: bulkAlbumId || null, art_theme: bulkTheme, is_published: true, startOrder: items.length },
         (done, total) => setBulkProgress({ done, total })
       );
-      showToast(`تم رفع ${bulkFiles.length} صورة بنجاح`);
+      showToast(isSuperAdmin ? `تم رفع ${bulkFiles.length} صورة بنجاح` : `تم إرسال ${bulkFiles.length} صورة لانتظار المراجعة`);
       setShowBulkForm(false);
       setBulkFiles([]);
       refreshImages();
@@ -160,10 +171,10 @@ export default function GalleryManager({ canEdit, showToast }: { canEdit: boolea
     try {
       if (albumEditing) {
         await adminUpdateAlbum(albumEditing.id, payload);
-        showToast('تم تحديث الألبوم');
+        showToast(publishToast(isSuperAdmin, 'تحديث', 'الألبوم'));
       } else {
         await adminCreateAlbum(payload);
-        showToast('تم إنشاء الألبوم');
+        showToast(publishToast(isSuperAdmin, 'إضافة', 'الألبوم'));
       }
       closeAlbumForm();
       refreshAlbums();
@@ -193,6 +204,8 @@ export default function GalleryManager({ canEdit, showToast }: { canEdit: boolea
 
   return (
     <div className="grid gap-6">
+      <EditorReviewNotice isSuperAdmin={isSuperAdmin} canEdit={canEdit} />
+
       {/* الألبومات — كروت بصورة غلاف */}
       <SectionCard
         title="ألبومات الصور"
@@ -254,6 +267,9 @@ export default function GalleryManager({ canEdit, showToast }: { canEdit: boolea
                     </span>
                     {a.created_by_name && <p className="mt-0.5 truncate text-[10px] text-white/50">نُشر بواسطة {a.created_by_name}</p>}
                   </div>
+                  <div className="absolute left-2 top-2">
+                    <PendingBadge item={a} />
+                  </div>
 
                   {canEdit ? (
                     <>
@@ -270,13 +286,15 @@ export default function GalleryManager({ canEdit, showToast }: { canEdit: boolea
                         >
                           <EditIcon className="h-3.5 w-3.5" />
                         </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteAlbum(a); }}
-                          className="pointer-events-auto rounded-lg bg-white/90 p-1.5 text-rose-500 shadow hover:bg-rose-50"
-                          aria-label="حذف الألبوم"
-                        >
-                          <TrashIcon className="h-3.5 w-3.5" />
-                        </button>
+                        {isSuperAdmin && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteAlbum(a); }}
+                            className="pointer-events-auto rounded-lg bg-white/90 p-1.5 text-rose-500 shadow hover:bg-rose-50"
+                            aria-label="حذف الألبوم"
+                          >
+                            <TrashIcon className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                       <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-violet-600 py-2 text-xs font-bold text-white opacity-0 transition group-hover:opacity-100">
                         <UploadIcon className="h-3.5 w-3.5" /> إدارة الصور
@@ -434,15 +452,23 @@ export default function GalleryManager({ canEdit, showToast }: { canEdit: boolea
                 </div>
                 <div className="p-2.5">
                   <p className="truncate text-xs font-bold">{g.title}</p>
-                  {g.album_id && albumTitleById.has(g.album_id) && (
-                    <Badge tone="violet">{albumTitleById.get(g.album_id)}</Badge>
-                  )}
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {g.album_id && albumTitleById.has(g.album_id) && (
+                      <Badge tone="violet">{albumTitleById.get(g.album_id)}</Badge>
+                    )}
+                    {!g.is_published && <Badge tone="neutral">غير منشورة</Badge>}
+                    <PendingBadge item={g} />
+                  </div>
                   <PublisherNote item={g} className="mt-1 block" />
                 </div>
-                {canEdit && (
+                {(canEdit || isSuperAdmin) && (
                   <div className="absolute inset-x-0 top-0 flex justify-end gap-1 p-2 opacity-0 transition group-hover:opacity-100">
-                    <button onClick={() => openEdit(g)} className="rounded-lg bg-white/90 p-1.5 text-ink/60 shadow hover:text-ink" aria-label="تعديل"><EditIcon className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => handleDelete(g.id)} className="rounded-lg bg-white/90 p-1.5 text-rose-500 shadow hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-3.5 w-3.5" /></button>
+                    {canEdit && (
+                      <button onClick={() => openEdit(g)} className="rounded-lg bg-white/90 p-1.5 text-ink/60 shadow hover:text-ink" aria-label="تعديل"><EditIcon className="h-3.5 w-3.5" /></button>
+                    )}
+                    {isSuperAdmin && (
+                      <button onClick={() => handleDelete(g.id)} className="rounded-lg bg-white/90 p-1.5 text-rose-500 shadow hover:bg-rose-50" aria-label="حذف"><TrashIcon className="h-3.5 w-3.5" /></button>
+                    )}
                   </div>
                 )}
               </div>

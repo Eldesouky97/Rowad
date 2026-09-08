@@ -29,9 +29,14 @@ export default function EventCard({
 
   return (
     <div className="flex flex-col overflow-hidden rounded-[18px] border border-gold/25 bg-cream shadow-card transition-transform hover:-translate-y-1">
-      <div className={`relative flex h-[132px] items-center justify-center text-cream/85 ${ART_BG[event.art_theme]}`}>
-        <CalendarIcon className="h-11 w-11 opacity-90" />
-      </div>
+      {event.image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={event.image_url} alt={event.title} loading="lazy" className="h-[132px] w-full object-cover" />
+      ) : (
+        <div className={`relative flex h-[132px] items-center justify-center text-cream/85 ${ART_BG[event.art_theme]}`}>
+          <CalendarIcon className="h-11 w-11 opacity-90" />
+        </div>
+      )}
       <div className="flex flex-1 flex-col gap-3 p-6">
         <div className="flex items-center justify-between gap-2">
           <span
