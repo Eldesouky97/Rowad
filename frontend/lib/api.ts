@@ -743,7 +743,7 @@ export const adminDeleteSuccessStory = async (id: string): Promise<void> => {
 /* ============ رفع الصور عبر Cloudflare R2 (معرض الصور، قصص النجاح، صور البروفايل) ============ */
 async function uploadImageToR2(
   file: File,
-  folder: 'gallery' | 'avatars' = 'gallery'
+  folder: 'gallery' | 'avatars' | 'branding' = 'gallery'
 ): Promise<{ storage_path: string; image_url: string }> {
   const formData = new FormData();
   formData.append('file', file);
@@ -1186,4 +1186,13 @@ export const adminUpdateSiteSettings = async (payload: SiteSettings): Promise<vo
   } catch (err) {
     throw translateFirebaseError(err);
   }
+};
+
+/** رفع/استبدال شعار الموقع — بيحذف الشعار القديم من R2 لو موجود، وبيرجّع
+ * المسار والرابط الجديدين عشان يُضافوا لباقي حقول إعدادات الموقع في نفس الحفظة. */
+export const adminUploadSiteLogo = async (file: File): Promise<{ storage_path: string; image_url: string }> => {
+  const existingSnap = await get(ref(db, 'site_settings/logo_storage_path'));
+  const uploaded = await uploadImageToR2(file, 'branding');
+  if (existingSnap.exists()) await deleteImageFromR2(existingSnap.val());
+  return uploaded;
 };

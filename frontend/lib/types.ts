@@ -228,6 +228,25 @@ export interface SectionsVisibility {
  * أقسام الصفحة الرئيسية)، ويعدّله السوبر أدمن بس من قسم "إعدادات الموقع".
  */
 export interface SiteSettings {
+  /** اسم الكيان — يظهر بجانب الشعار في الهيدر والفوتر وعنوان المتصفح */
+  site_name?: string;
+  /** الوصف الفرعي تحت الاسم (مثال: "المحافظات الحدودية") */
+  site_tagline?: string;
+  /** نبذة مختصرة عن الكيان — تظهر في الفوتر وعنوان المتصفح الوصفي */
+  site_description?: string;
+  logo_storage_path?: string | null;
+  logo_url?: string | null;
+  /** نصوص قسم "من نحن" في الصفحة الرئيسية — فراغ = يظهر النص الافتراضي المدمج بالكود */
+  about_text?: string;
+  vision_text?: string;
+  mission_text?: string;
+  /** القيم/الشعارات القصيرة المعروضة كوسوم أسفل قسم "من نحن" */
+  values?: string[];
+  /** الأرقام الإحصائية في قسم "من نحن" بالصفحة الرئيسية */
+  stat_beneficiaries?: number;
+  stat_projects?: number;
+  stat_governorates?: number;
+  stat_satisfaction?: number;
   contact_phone?: string;
   contact_email?: string;
   contact_address?: string;

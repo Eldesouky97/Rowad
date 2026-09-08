@@ -18,7 +18,7 @@ const MAX_SIZE = 4 * 1024 * 1024; // 4MB، نفس الحد القديم في Lar
 
 // المجلدات المسموح رفع الصور فيها فقط — أي قيمة تانية بترجع لـ gallery افتراضيًا
 // عشان محدش يقدر يكتب في مسار عشوائي جوه الـ bucket.
-const ALLOWED_FOLDERS = new Set(['gallery', 'avatars']);
+const ALLOWED_FOLDERS = new Set(['gallery', 'avatars', 'branding']);
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();

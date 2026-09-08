@@ -19,7 +19,7 @@ import {
   getSiteSettings,
 } from '@/lib/api';
 import { getMyBookedEventIds } from '@/lib/bookings';
-import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum, SectionsVisibility } from '@/lib/types';
+import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum, SectionsVisibility, SiteSettings } from '@/lib/types';
 import Counter from '@/components/Counter';
 import {
   CalendarIcon, ArrowIcon, HandsIcon, BookIcon, CompassIcon,
@@ -148,6 +148,7 @@ export default function HomePage() {
   const [programSearch, setProgramSearch] = useState('');
   const [programCategory, setProgramCategory] = useState<string>('all');
   const [sectionsVisibility, setSectionsVisibility] = useState<SectionsVisibility>({});
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
 
   useEffect(() => {
     setBookedIds(getMyBookedEventIds());
@@ -158,7 +159,10 @@ export default function HomePage() {
     getSuccessStories().then(setStories).catch(() => setStories([]));
     getGallery().then(setGallery).catch(() => setGallery([]));
     getGalleryAlbums().then(setGalleryAlbums).catch(() => setGalleryAlbums([]));
-    getSiteSettings().then((s) => setSectionsVisibility(s.sections_visibility ?? {})).catch(() => setSectionsVisibility({}));
+    getSiteSettings().then((s) => {
+      setSectionsVisibility(s.sections_visibility ?? {});
+      setSiteSettings(s);
+    }).catch(() => setSectionsVisibility({}));
   }, []);
 
   // section مخفي بس لو الأدمن عطّله صراحة من إعدادات الموقع (undefined = ظاهر افتراضيًا)
@@ -292,29 +296,29 @@ export default function HomePage() {
             منظمة متخصصة في دعم وتطوير المحافظات الحدودية المصرية
           </h2>
           <p className="mt-4 max-w-[70ch] opacity-85">
-            نعمل من خلال برامج ومبادرات متنوعة على بناء القدرات القيادية والريادية لأبناء وبنات
-            المحافظات، وربطهم بمؤسسات الدولة والقطاع الخاص، وتوثيق قصص نجاحهم لتكون نموذجًا يُحتذى.
+            {siteSettings.about_text ||
+              'نعمل من خلال برامج ومبادرات متنوعة على بناء القدرات القيادية والريادية لأبناء وبنات المحافظات، وربطهم بمؤسسات الدولة والقطاع الخاص، وتوثيق قصص نجاحهم لتكون نموذجًا يُحتذى.'}
           </p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-2">
             <div className="rounded-[20px] bg-night p-8 text-cream">
               <h3 className="mb-3 font-utility text-lg text-gold-2">رؤيتنا</h3>
               <p className="opacity-90">
-                أن نكون المنصة الرائدة في دعم التنمية الشاملة في المحافظات الحدودية، وخلق بيئة
-                محفزة للشباب والمبادرات التنموية.
+                {siteSettings.vision_text ||
+                  'أن نكون المنصة الرائدة في دعم التنمية الشاملة في المحافظات الحدودية، وخلق بيئة محفزة للشباب والمبادرات التنموية.'}
               </p>
             </div>
             <div className="rounded-[20px] border border-gold/25 bg-white p-8">
               <h3 className="mb-3 font-utility text-lg text-rust">رسالتنا</h3>
               <p className="opacity-85">
-                تمكين المجتمعات المحلية من خلال برامج تدريبية ومبادرات تنموية مستدامة تهدف إلى
-                تحسين جودة الحياة وتعزيز الاقتصاد المحلي.
+                {siteSettings.mission_text ||
+                  'تمكين المجتمعات المحلية من خلال برامج تدريبية ومبادرات تنموية مستدامة تهدف إلى تحسين جودة الحياة وتعزيز الاقتصاد المحلي.'}
               </p>
             </div>
           </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            {['التنمية المستدامة', 'الابتكار والإبداع', 'العمل الجماعي', 'التميز والجودة'].map((v) => (
+            {(siteSettings.values?.length ? siteSettings.values : ['التنمية المستدامة', 'الابتكار والإبداع', 'العمل الجماعي', 'التميز والجودة']).map((v) => (
               <span key={v} className="rounded-full border border-rust/30 bg-white px-4 py-2 font-utility text-xs font-bold text-rust">
                 {v}
               </span>
@@ -322,10 +326,10 @@ export default function HomePage() {
           </div>
 
           <Reveal variant="stagger" className="mt-12 grid grid-cols-2 gap-6 border-t border-gold/20 pt-10 md:grid-cols-4">
-            <Stat value={1200} prefix="+" label="شاب وشابة مستفيدون" />
-            <Stat value={60} prefix="+" label="مشروع منجز" />
-            <Stat value={10} label="محافظات مستهدفة" />
-            <Stat value={94} suffix="٪" label="نسبة رضا المستفيدين" />
+            <Stat value={siteSettings.stat_beneficiaries ?? 1200} prefix="+" label="شاب وشابة مستفيدون" />
+            <Stat value={siteSettings.stat_projects ?? 60} prefix="+" label="مشروع منجز" />
+            <Stat value={siteSettings.stat_governorates ?? 10} label="محافظات مستهدفة" />
+            <Stat value={siteSettings.stat_satisfaction ?? 94} suffix="٪" label="نسبة رضا المستفيدين" />
           </Reveal>
 
           <div className="mt-10">

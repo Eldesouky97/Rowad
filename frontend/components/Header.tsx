@@ -1,18 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { visitorSignOut } from '@/lib/api';
+import { visitorSignOut, getSiteSettings } from '@/lib/api';
 import { useVisitorProfile } from '@/lib/useVisitorProfile';
 import AccountMenu from './AccountMenu';
 import UserAvatar from './UserAvatar';
 import { MenuIcon, CloseIcon, HandsIcon, GridIcon, LogoutIcon, SettingsIcon } from './icons';
+import type { SiteSettings } from '@/lib/types';
 
 // ملاحظة: الصور داخل مجلد public تُستدعى برابط نصي مباشر، وليس عبر import،
 // لأن Next.js يقدّم محتوى public كملفات ثابتة كما هي دون تمريرها لنظام الحزم.
-const LOGO_SRC = '/brand/logo.jpg';
+// (تُستخدم لو السوبر أدمن ما رفعش لوجو مخصص من إعدادات الموقع)
+const DEFAULT_LOGO_SRC = '/brand/logo.jpg';
 
 const LINKS = [
   { href: '/', label: 'الرئيسية' },
@@ -28,12 +30,19 @@ const LINKS = [
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
   const { authUser, isAdmin, loading, displayName, photoUrl } = useVisitorProfile();
   const pathname = usePathname();
   const router = useRouter();
 
+  useEffect(() => {
+    getSiteSettings().then(setSiteSettings).catch(() => setSiteSettings({}));
+  }, []);
+
   // "تواصل معنا" مطلوب يختفي من شريط التنقّل بعد تسجيل الدخول
   const visibleLinks = authUser ? LINKS.filter((link) => link.href !== '/contact') : LINKS;
+  const siteName = siteSettings.site_name || 'رُوَّاد';
+  const siteTagline = siteSettings.site_tagline || 'المحافظات الحدودية';
 
   async function handleSignOut() {
     await visitorSignOut();
@@ -45,18 +54,27 @@ export default function Header() {
     <header className="sticky top-0 z-[100] border-b border-gold/20 bg-night/95 backdrop-blur-md">
       <div className="mx-auto flex h-[76px] max-w-[1180px] items-center justify-between px-5 sm:px-6">
         <Link href="/" className="flex items-center gap-3 text-cream" onClick={() => setOpen(false)}>
-          <Image
-            src={LOGO_SRC}
-            alt="شعار رُوَّاد المحافظات الحدودية"
-            width={44}
-            height={44}
-            className="h-11 w-11 rounded-full object-cover ring-2 ring-gold-2/60"
-            priority
-          />
+          {siteSettings.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={siteSettings.logo_url}
+              alt={`شعار ${siteName}`}
+              className="h-11 w-11 rounded-full object-cover ring-2 ring-gold-2/60"
+            />
+          ) : (
+            <Image
+              src={DEFAULT_LOGO_SRC}
+              alt={`شعار ${siteName}`}
+              width={44}
+              height={44}
+              className="h-11 w-11 rounded-full object-cover ring-2 ring-gold-2/60"
+              priority
+            />
+          )}
           <span className="font-display leading-tight">
-            <b className="block text-xl font-bold text-gold-2">رُوَّاد</b>
+            <b className="block text-xl font-bold text-gold-2">{siteName}</b>
             <span className="font-utility text-[11px] tracking-wider text-cream/70">
-              المحافظات الحدودية
+              {siteTagline}
             </span>
           </span>
         </Link>

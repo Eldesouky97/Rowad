@@ -30,28 +30,40 @@ export default function Footer() {
   const socialLinks = Object.entries(SOCIAL_LABELS)
     .map(([key, label]) => ({ key, label, url: settings[key as keyof SiteSettings] as string | undefined }))
     .filter((s) => s.url);
+  const siteName = settings.site_name || 'رُوَّاد';
+  const siteTagline = settings.site_tagline || 'المحافظات الحدودية';
 
   return (
     <footer className="bg-[#0F1B2E] px-5 pb-6 pt-14 text-cream/75 sm:px-6">
       <div className="mx-auto grid max-w-[1180px] gap-10 sm:grid-cols-2 md:grid-cols-4">
         <div>
           <div className="mb-4 flex items-center gap-3">
-            <Image
-              src="/brand/logo.jpg"
-              alt="شعار رُوَّاد المحافظات الحدودية"
-              width={40}
-              height={40}
-              className="h-10 w-10 rounded-full object-cover ring-2 ring-gold-2/50"
-            />
+            {settings.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={settings.logo_url}
+                alt={`شعار ${siteName}`}
+                className="h-10 w-10 rounded-full object-cover ring-2 ring-gold-2/50"
+              />
+            ) : (
+              <Image
+                src="/brand/logo.jpg"
+                alt={`شعار ${siteName}`}
+                width={40}
+                height={40}
+                className="h-10 w-10 rounded-full object-cover ring-2 ring-gold-2/50"
+              />
+            )}
             <span className="font-display">
-              <b className="block text-lg font-bold text-gold-2">رُوَّاد</b>
+              <b className="block text-lg font-bold text-gold-2">{siteName}</b>
               <span className="font-utility text-[10px] tracking-wider text-cream/70">
-                المحافظات الحدودية
+                {siteTagline}
               </span>
             </span>
           </div>
           <p className="max-w-[32ch] text-sm text-cream/70">
-            كيان شبابي أهلي يعمل على تمكين الشباب وتحقيق التنمية الشاملة في المحافظات المصرية.
+            {settings.site_description ||
+              'كيان شبابي أهلي يعمل على تمكين الشباب وتحقيق التنمية الشاملة في المحافظات المصرية.'}
           </p>
         </div>
 
@@ -148,7 +160,7 @@ export default function Footer() {
       </div>
 
       <div className="mx-auto mt-10 flex max-w-[1180px] flex-wrap items-center justify-between gap-3 border-t border-gold/15 pt-6 text-xs">
-        <span>© {new Date().getFullYear()} رُوَّاد المحافظات الحدودية. جميع الحقوق محفوظة.</span>
+        <span>© {new Date().getFullYear()} {siteName} {siteTagline}. جميع الحقوق محفوظة.</span>
         {!isAdmin && (
           <Link href="/admin/login" className="text-cream/50 hover:text-gold-2">
             دخول لوحة التحكم
