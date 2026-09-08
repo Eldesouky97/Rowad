@@ -19,6 +19,7 @@ import {
   updateEmail,
   updatePassword,
   reauthenticateWithCredential,
+  linkWithCredential,
   EmailAuthProvider,
   type User,
 } from 'firebase/auth';
@@ -79,6 +80,15 @@ function translateFirebaseError(err: unknown): ApiException {
   }
   if (code === 'auth/too-many-requests') {
     return new ApiException('محاولات كثيرة جدًا، حاول لاحقًا', 429);
+  }
+  if (code === 'auth/credential-already-in-use' || code === 'auth/email-already-exists') {
+    return new ApiException('في حساب تاني مرتبط بنفس البريد الإلكتروني بالفعل', 422);
+  }
+  if (code === 'auth/provider-already-linked') {
+    return new ApiException('حسابك عنده كلمة مرور بالفعل', 422);
+  }
+  if (code === 'auth/requires-recent-login') {
+    return new ApiException('العملية دي محتاجة تسجّل دخول حديث — سجّل خروج ودخول تاني وحاول مرة أخرى', 401);
   }
   return new ApiException(message || 'حدث خطأ غير متوقع', 500);
 }
@@ -292,6 +302,26 @@ export const updateVisitorPassword = async (newPassword: string, currentPassword
   await reauthenticateVisitor(currentPassword);
   try {
     await updatePassword(auth.currentUser!, newPassword);
+  } catch (err) {
+    throw translateFirebaseError(err);
+  }
+};
+
+/**
+ * يضيف كلمة مرور لحساب اتسجّل أصلًا بجوجل بس (بدون كلمة مرور) — بيربط
+ * (link) بيانات دخول بريد/كلمة مرور على نفس حساب Firebase Auth الحالي،
+ * بنفس البريد الإلكتروني اللي جوجل رجّعه، فيقدر بعدها يسجّل دخول
+ * بالبريد وكلمة المرور دي كمان، مش بجوجل بس.
+ */
+export const addPasswordToAccount = async (password: string): Promise<void> => {
+  const user = auth.currentUser;
+  if (!user || !user.email) {
+    throw new ApiException('سجّل الدخول أولًا', 401);
+  }
+  try {
+    const credential = EmailAuthProvider.credential(user.email, password);
+    await linkWithCredential(user, credential);
+    await update(ref(db, `site_users/${user.uid}`), { email: user.email });
   } catch (err) {
     throw translateFirebaseError(err);
   }

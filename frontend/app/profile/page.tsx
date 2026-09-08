@@ -7,6 +7,7 @@ import {
   updateVisitorProfile,
   updateVisitorEmail,
   updateVisitorPassword,
+  addPasswordToAccount,
   ApiException,
 } from '@/lib/api';
 import { useVisitorProfile } from '@/lib/useVisitorProfile';
@@ -26,6 +27,10 @@ export default function ProfilePage() {
   const router = useRouter();
   const { showToast } = useToast();
   const { authUser, profile, profileLoaded, loading, displayName, photoUrl } = useVisitorProfile();
+  // بعد ربط كلمة مرور بحساب جوجل بنجاح، authUser.providerData بيتحدّث فورًا
+  // (نفس الـ object في الذاكرة) لكن مش دايمًا كافي وحده لإجبار رندر جديد —
+  // الفلاج ده بيضمن التبديل الفوري لقسم البريد/كلمة المرور من غير أي تأخير
+  const [justLinkedPassword, setJustLinkedPassword] = useState(false);
 
   useEffect(() => {
     if (!loading && !authUser) router.replace('/login?next=/profile');
@@ -38,7 +43,7 @@ export default function ProfilePage() {
     return <p className="py-24 text-center text-sm opacity-60">جارٍ التحقق…</p>;
   }
 
-  const hasPasswordProvider = authUser.providerData.some((p) => p.providerId === 'password');
+  const hasPasswordProvider = justLinkedPassword || authUser.providerData.some((p) => p.providerId === 'password');
   const memberSince = authUser.metadata.creationTime
     ? new Date(authUser.metadata.creationTime).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
     : null;
@@ -70,19 +75,31 @@ export default function ProfilePage() {
             <PasswordCard onSaved={() => showToast('تم تغيير كلمة المرور')} />
           </>
         ) : (
-          <div className={cardClass}>
-            <p className="text-sm opacity-70">
-              حسابك مرتبط بتسجيل الدخول عبر Google، فمفيش بريد إلكتروني أو كلمة مرور منفصلة تقدر تغيّرها هنا.
-            </p>
-          </div>
+          <AddPasswordCard
+            email={authUser.email || ''}
+            onLinked={() => {
+              setJustLinkedPassword(true);
+              showToast('تم إضافة كلمة مرور لحسابك — تقدر تدخل بيها بدل جوجل من دلوقتي');
+            }}
+          />
         )}
 
         <div className={cardClass}>
           <h2 className="mb-4 font-display text-lg">معلومات الحساب</h2>
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
+              <dt className="text-xs font-bold uppercase tracking-wide opacity-50">البريد الإلكتروني</dt>
+              <dd className="mt-1 font-bold">{authUser.email || '—'}</dd>
+            </div>
+            <div>
               <dt className="text-xs font-bold uppercase tracking-wide opacity-50">طريقة الدخول</dt>
-              <dd className="mt-1 font-bold">{hasPasswordProvider ? 'بريد إلكتروني وكلمة مرور' : 'حساب Google'}</dd>
+              <dd className="mt-1 font-bold">
+                {authUser.providerData.some((p) => p.providerId === 'password') && authUser.providerData.some((p) => p.providerId === 'google.com')
+                  ? 'Google + بريد إلكتروني وكلمة مرور'
+                  : hasPasswordProvider
+                    ? 'بريد إلكتروني وكلمة مرور'
+                    : 'حساب Google'}
+              </dd>
             </div>
             {memberSince && (
               <div>
@@ -325,6 +342,65 @@ function PersonalInfoCard({ profile, onSaved }: { profile: SiteUser | null; onSa
         className="mt-5 rounded-full bg-violet-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
       >
         {submitting ? 'جارٍ الحفظ…' : 'حفظ البيانات الشخصية'}
+      </button>
+    </form>
+  );
+}
+
+function AddPasswordCard({ email, onLinked }: { email: string; onLinked: () => void }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const password = String(form.get('password') || '');
+    const confirmPassword = String(form.get('confirm_password') || '');
+
+    if (password.length < 8) {
+      setError('كلمة المرور يجب أن تكون ٨ أحرف على الأقل');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('كلمة المرور وتأكيدها غير متطابقين');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await addPasswordToAccount(password);
+      onLinked();
+    } catch (err) {
+      setError(err instanceof ApiException ? err.message : 'تعذّر إضافة كلمة المرور');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className={cardClass}>
+      <h2 className="mb-1 flex items-center gap-2 font-display text-lg"><KeyIcon className="h-5 w-5 opacity-60" /> إضافة كلمة مرور</h2>
+      <p className="mb-4 text-xs opacity-55">
+        حسابك مسجّل دخوله بجوجل بالبريد <b>{email}</b> — أضف كلمة مرور عشان تقدر كمان تدخل بنفس البريد ده وكلمة المرور، من غير ما تحتاج جوجل في كل مرة.
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className={labelClass}>كلمة المرور</label>
+          <input name="password" type="password" minLength={8} required className={inputClass} />
+        </div>
+        <div>
+          <label className={labelClass}>تأكيد كلمة المرور</label>
+          <input name="confirm_password" type="password" minLength={8} required className={inputClass} />
+        </div>
+      </div>
+      {error && <p className="mt-3 text-sm text-[#e08a6b]">{error}</p>}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="mt-5 rounded-full bg-violet-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
+      >
+        {submitting ? 'جارٍ الإضافة…' : 'إضافة كلمة مرور'}
       </button>
     </form>
   );
