@@ -18,10 +18,29 @@ function relatedScore(candidate: Article, base: Article): number {
   return score;
 }
 
+// صورة المقال هنا أساسية لتبويب "openGraph"/"twitter" — دي اللي فيسبوك
+// وواتساب وإكس بيقروها لما حد يشارك رابط المقال، مش أي حاجة بيبعتها زرار
+// المشاركة نفسه؛ من غيرها المعاينة بتظهر بدون صورة أو بصورة الموقع الافتراضية.
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   try {
     const article = await getArticle(decodeURIComponent(params.slug));
-    return { title: `${article.title} — رُوَّاد المحافظات الحدودية`, description: article.excerpt };
+    const title = `${article.title} — رُوَّاد المحافظات الحدودية`;
+    return {
+      title,
+      description: article.excerpt,
+      openGraph: {
+        title,
+        description: article.excerpt,
+        type: 'article',
+        images: article.image_url ? [{ url: article.image_url, width: 1200, height: 630, alt: article.title }] : undefined,
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description: article.excerpt,
+        images: article.image_url ? [article.image_url] : undefined,
+      },
+    };
   } catch {
     return { title: 'رُوَّاد المحافظات الحدودية' };
   }

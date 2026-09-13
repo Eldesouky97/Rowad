@@ -8,7 +8,23 @@ import { ArrowIcon, PinIcon, StarIcon, UsersIcon } from '@/components/icons';
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   try {
     const story = await getSuccessStory(decodeURIComponent(params.slug));
-    return { title: `قصة ${story.name} — رُوَّاد المحافظات الحدودية`, description: story.quote };
+    const title = `قصة ${story.name} — رُوَّاد المحافظات الحدودية`;
+    return {
+      title,
+      description: story.quote,
+      openGraph: {
+        title,
+        description: story.quote,
+        type: 'article',
+        images: story.image_url ? [{ url: story.image_url, width: 1200, height: 630, alt: story.name }] : undefined,
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description: story.quote,
+        images: story.image_url ? [story.image_url] : undefined,
+      },
+    };
   } catch {
     return { title: 'رُوَّاد المحافظات الحدودية' };
   }
