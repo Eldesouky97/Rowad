@@ -31,14 +31,32 @@ export async function restPost<T = unknown>(path: string, data: unknown): Promis
   return (await res.json()) as { name: string };
 }
 
+// أقصى طول لجزء العنوان داخل الـ slug — بيقتصر على أول كام كلمة بس (مش أول
+// 60 حرف زي الأول) عشان الرابط يفضل مختصر ومقروء، ومقطوع عند حد كلمة كاملة
+// مش نص كلمة. العناوين العربية الطويلة كانت بتنتج روابط طويلة جدًا.
+const SLUG_MAX_LENGTH = 24;
+
 /** توليد slug من عنوان عربي (لا يتم تحويله لحروف لاتينية) + لاحقة عشوائية لضمان التفرّد */
 export function makeSlug(title: string): string {
-  const base = title
+  const words = title
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^\p{L}\p{N}-]/gu, '')
-    .slice(0, 60);
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .split(/\s+/)
+    .filter(Boolean);
+
+  let base = '';
+  for (const word of words) {
+    const next = base ? `${base}-${word}` : word;
+    if (next.length > SLUG_MAX_LENGTH) {
+      if (!base) base = word.slice(0, SLUG_MAX_LENGTH);
+      break;
+    }
+    base = next;
+    if (base.length >= SLUG_MAX_LENGTH) break;
+  }
+  if (!base) base = 'خبر';
+
   const suffix = Math.random().toString(36).slice(2, 7);
   return `${base}-${suffix}`;
 }

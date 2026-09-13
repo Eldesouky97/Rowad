@@ -168,7 +168,7 @@ export default function ArticlesManager({
             <div className="flex items-center gap-4">
               {editing?.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={editing.image_url} alt={editing.title} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                <img src={editing.image_url} alt={editing.title} className="h-14 w-14 shrink-0 rounded-lg bg-sand-2 object-contain" />
               )}
               <input name="image" type="file" accept="image/*" required={!editing} className={inputClass} />
             </div>
@@ -209,10 +209,10 @@ export default function ArticlesManager({
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((a) => (
             <div key={a.id} className="group flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm">
-              <div className="relative h-36 w-full overflow-hidden">
+              <div className="relative h-36 w-full overflow-hidden bg-sand-2">
                 {a.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={a.image_url} alt={a.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <img src={a.image_url} alt={a.title} className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" />
                 ) : (
                   <div className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${ART_BG[a.art_theme]}`}>
                     <BookIcon className="h-9 w-9 text-white/70" />

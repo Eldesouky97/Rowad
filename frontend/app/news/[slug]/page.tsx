@@ -89,9 +89,9 @@ export default async function ArticlePage({ params }: { params: { slug: string }
         </div>
 
         {article.image_url && (
-          <div className="mb-8 overflow-hidden rounded-[18px]">
+          <div className="mb-8 overflow-hidden rounded-[18px] bg-sand-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={article.image_url} alt={article.title} className="h-auto max-h-[420px] w-full object-cover" />
+            <img src={article.image_url} alt={article.title} className="max-h-[420px] w-full object-contain" />
           </div>
         )}
 

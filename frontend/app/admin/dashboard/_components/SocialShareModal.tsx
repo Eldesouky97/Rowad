@@ -63,7 +63,7 @@ export default function SocialShareModal({ article, onClose }: { article: ShareA
         <div className="mb-4 flex gap-3 rounded-xl border border-ink/10 bg-sand/40 p-3">
           {article.image_url && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={article.image_url} alt={article.title} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+            <img src={article.image_url} alt={article.title} className="h-16 w-16 shrink-0 rounded-lg bg-sand-2 object-contain" />
           )}
           <div className="min-w-0">
             <p className="truncate text-sm font-bold">{article.title}</p>

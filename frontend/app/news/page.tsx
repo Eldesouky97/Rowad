@@ -92,7 +92,12 @@ function NewsPageInner() {
                 className="group grid overflow-hidden rounded-[22px] border border-gold/25 bg-white shadow-card transition-all duration-300 hover:shadow-xl md:grid-cols-2"
               >
                 <div className={`relative flex h-56 items-center justify-center overflow-hidden text-cream/85 md:h-full ${ART_BG[featured.art_theme]}`}>
-                  <BookIcon className="h-14 w-14 opacity-90 transition-transform duration-500 group-hover:scale-110" />
+                  {featured.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={featured.image_url} alt={featured.title} className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" />
+                  ) : (
+                    <BookIcon className="h-14 w-14 opacity-90 transition-transform duration-500 group-hover:scale-110" />
+                  )}
                   <span className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-gold-2 px-3 py-1 font-utility text-[11px] font-bold text-night">
                     <StarIcon className="h-3.5 w-3.5" /> الخبر الرئيسي
                   </span>

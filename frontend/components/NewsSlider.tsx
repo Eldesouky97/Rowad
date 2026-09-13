@@ -51,12 +51,12 @@ export default function NewsSlider({ articles }: { articles: Article[] }) {
           aria-hidden={i !== index}
           tabIndex={i === index ? 0 : -1}
         >
-          {a.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={a.image_url} alt={a.title} className="h-full w-full object-cover" />
-          ) : (
-            <div className={`h-full w-full ${ART_BG[a.art_theme]}`} />
-          )}
+          <div className={`h-full w-full ${ART_BG[a.art_theme]}`}>
+            {a.image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={a.image_url} alt={a.title} className="h-full w-full object-contain" />
+            )}
+          </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
           <div className="absolute inset-x-0 bottom-0">
             <div className="mx-auto max-w-[1180px] px-5 pb-12 sm:px-6 sm:pb-16">

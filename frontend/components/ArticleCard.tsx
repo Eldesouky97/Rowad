@@ -22,13 +22,13 @@ export default function ArticleCard({ article }: { article: Article }) {
       className="group flex flex-col overflow-hidden rounded-[18px] border border-gold/25 bg-cream shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
     >
       {article.image_url ? (
-        <div className="h-[132px] w-full overflow-hidden">
+        <div className="h-[132px] w-full overflow-hidden bg-sand-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={article.image_url}
             alt={article.title}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+            className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
           />
         </div>
       ) : (
