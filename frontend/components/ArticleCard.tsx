@@ -43,8 +43,17 @@ export default function ArticleCard({ article }: { article: Article }) {
             {article.governorate}
           </span>
         </div>
-        <h3 className="font-display text-lg leading-snug transition-colors group-hover:text-violet-700">{article.title}</h3>
-        <p className="flex-1 text-sm opacity-85">{article.excerpt}</p>
+        <h3 className="font-display text-lg leading-snug text-ink transition-colors group-hover:text-violet-700">{article.title}</h3>
+        <p className="flex-1 text-sm text-ink opacity-85">{article.excerpt}</p>
+        {article.tags && article.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {article.tags.slice(0, 3).map((tag) => (
+              <span key={tag} className="rounded-full bg-sand-2 px-2.5 py-1 font-utility text-[10px] font-bold text-ink/60">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="flex flex-wrap gap-3 font-utility text-xs text-[#6b5f4c]">
           <span className="flex items-center gap-1"><UsersIcon className="h-3.5 w-3.5" /> {article.author}</span>
           <span className="flex items-center gap-1"><CalendarIcon className="h-3.5 w-3.5" /> {dateLabel}</span>

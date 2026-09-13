@@ -283,7 +283,7 @@ export default function HomePage() {
             <span className="h-0.5 w-6 bg-rust" /> من نحن
           </p>
           <h2 className="max-w-[36ch] font-display text-3xl">
-            منظمة متخصصة في دعم وتطوير المحافظات الحدودية المصرية
+            كيان متخصص في دعم وتطوير المحافظات الحدودية المصرية
           </h2>
           <p className="mt-4 max-w-[70ch] opacity-85">
             {siteSettings.about_text ||

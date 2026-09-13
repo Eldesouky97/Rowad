@@ -5,10 +5,22 @@ import { isHtmlContent, sanitizeRichContent } from '@/lib/sanitizeContent';
 import ArticleCard from '@/components/ArticleCard';
 import ArticleEngagement from '@/components/ArticleEngagement';
 import { UsersIcon, CalendarIcon, ArrowIcon, BookIcon } from '@/components/icons';
+import type { Article } from '@/lib/types';
+
+// ترتيب "مقالات ذات صلة" بالأهمية: وسوم مشتركة (الأقوى) > نفس المحافظة > نفس
+// التصنيف > الأحدث نشرًا كمرجّح أخير — بدل ما كان بيعتمد على نفس التصنيف فقط.
+function relatedScore(candidate: Article, base: Article): number {
+  const baseTags = new Set(base.tags ?? []);
+  const sharedTags = (candidate.tags ?? []).filter((t) => baseTags.has(t)).length;
+  let score = sharedTags * 3;
+  if (candidate.governorate === base.governorate) score += 2;
+  if (candidate.category === base.category) score += 1;
+  return score;
+}
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   try {
-    const article = await getArticle(params.slug);
+    const article = await getArticle(decodeURIComponent(params.slug));
     return { title: `${article.title} — رُوَّاد المحافظات الحدودية`, description: article.excerpt };
   } catch {
     return { title: 'رُوَّاد المحافظات الحدودية' };
@@ -18,19 +30,21 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function ArticlePage({ params }: { params: { slug: string } }) {
   let article;
   try {
-    article = await getArticle(params.slug);
+    article = await getArticle(decodeURIComponent(params.slug));
   } catch (err) {
     if (err instanceof ApiException && err.status === 404) notFound();
     throw err;
   }
 
   const allArticles = await getArticles().catch(() => []);
-  const related = allArticles
-    .filter((a) => a.id !== article.id && a.category === article.category)
+  const relatedFallback = allArticles
+    .filter((a) => a.id !== article.id)
+    .sort((a, b) => {
+      const scoreDiff = relatedScore(b, article) - relatedScore(a, article);
+      if (scoreDiff !== 0) return scoreDiff;
+      return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+    })
     .slice(0, 3);
-  const relatedFallback = related.length > 0
-    ? related
-    : allArticles.filter((a) => a.id !== article.id).slice(0, 3);
 
   const dateLabel = new Date(article.published_at).toLocaleDateString('ar-EG', {
     year: 'numeric',

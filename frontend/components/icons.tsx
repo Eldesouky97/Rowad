@@ -133,3 +133,13 @@ export const LayersIcon = (p: SVGProps<SVGSVGElement>) => (
 export const DownloadIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="M12 4v12M7.5 11.5L12 16l4.5-4.5" /><path d="M4 16.5V18a2 2 0 002 2h12a2 2 0 002-2v-1.5" /></svg>
 );
+export const FacebookIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...p}>
+    <path d="M13.5 21v-8.2h2.75l.41-3.2h-3.16V7.55c0-.93.26-1.56 1.59-1.56h1.7V3.13C15.98 3.09 15.02 3 13.9 3c-2.34 0-3.94 1.43-3.94 4.05v2.55H7.2v3.2h2.76V21h3.54z" />
+  </svg>
+);
+export const XIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...p}>
+    <path d="M18.9 3h3.1l-6.77 7.74L23.2 21h-6.24l-4.89-6.4L6.44 21H3.33l7.24-8.28L2.4 3h6.4l4.42 5.85L18.9 3zm-1.09 16.17h1.72L7.28 4.73H5.43l12.38 14.44z" />
+  </svg>
+);

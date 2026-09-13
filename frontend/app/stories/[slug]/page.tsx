@@ -7,7 +7,7 @@ import { ArrowIcon, PinIcon, StarIcon, UsersIcon } from '@/components/icons';
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   try {
-    const story = await getSuccessStory(params.slug);
+    const story = await getSuccessStory(decodeURIComponent(params.slug));
     return { title: `قصة ${story.name} — رُوَّاد المحافظات الحدودية`, description: story.quote };
   } catch {
     return { title: 'رُوَّاد المحافظات الحدودية' };
@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function SuccessStoryPage({ params }: { params: { slug: string } }) {
   let story;
   try {
-    story = await getSuccessStory(params.slug);
+    story = await getSuccessStory(decodeURIComponent(params.slug));
   } catch (err) {
     if (err instanceof ApiException && err.status === 404) notFound();
     throw err;
