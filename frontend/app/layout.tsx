@@ -7,6 +7,7 @@ import { ToastProvider } from '@/components/Toast';
 import ProfileCompletionGate from '@/components/ProfileCompletionGate';
 import ScrollToTop from '@/components/ScrollToTop';
 import { getSiteSettings } from '@/lib/publicApi';
+import { SITE_DEFAULTS } from '@/lib/siteDefaults';
 
 const notoSansArabic = Noto_Sans_Arabic({
   subsets: ['arabic'],
@@ -15,24 +16,20 @@ const notoSansArabic = Noto_Sans_Arabic({
   display: 'swap',
 });
 
-const DEFAULT_TITLE = 'رُوَّاد المحافظات الحدودية';
-const DEFAULT_DESCRIPTION =
-  'منصة متخصصة في دعم وتطوير المحافظات الحدودية المصرية، تمكين الشباب، وتحقيق التنمية المستدامة.';
-
 // عنوان ووصف المتصفح يعتمدوا على اسم الكيان ونبذته من إعدادات الموقع لو
-// السوبر أدمن حدّدهم، وإلا بيرجعوا للنص الافتراضي المدمج بالكود.
+// السوبر أدمن حدّدهم، وإلا بيرجعوا للنص الافتراضي المدمج بالكود (lib/siteDefaults.ts).
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const settings = await getSiteSettings();
     const name = settings.site_name && settings.site_tagline
       ? `${settings.site_name} ${settings.site_tagline}`
-      : settings.site_name || DEFAULT_TITLE;
+      : settings.site_name || SITE_DEFAULTS.site_name;
     return {
       title: name,
-      description: settings.site_description || DEFAULT_DESCRIPTION,
+      description: settings.site_description || SITE_DEFAULTS.site_description,
     };
   } catch {
-    return { title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION };
+    return { title: SITE_DEFAULTS.site_name, description: SITE_DEFAULTS.site_description };
   }
 }
 

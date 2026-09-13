@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { visitorSignOut, getSiteSettings } from '@/lib/api';
+import { visitorSignOut, getSiteSettings, getGovernorates } from '@/lib/api';
 import { useVisitorProfile } from '@/lib/useVisitorProfile';
 import UserAvatar from './UserAvatar';
 import { GridIcon, LogoutIcon, LinkIcon, PhoneIcon, MailIcon, PinIcon } from './icons';
-import type { SiteSettings } from '@/lib/types';
+import type { SiteSettings, Governorate } from '@/lib/types';
+import { SITE_DEFAULTS } from '@/lib/siteDefaults';
+import { GOVERNORATES } from '@/lib/constants';
 
 const SOCIAL_LABELS: Record<string, string> = {
   social_facebook: 'فيسبوك',
@@ -22,9 +24,13 @@ const SOCIAL_LABELS: Record<string, string> = {
 export default function Footer() {
   const { authUser, isAdmin, loading, displayName, photoUrl } = useVisitorProfile();
   const [settings, setSettings] = useState<SiteSettings>({});
+  const [governorates, setGovernorates] = useState<Governorate[]>([]);
 
   useEffect(() => {
     getSiteSettings().then(setSettings).catch(() => setSettings({}));
+    // بتُقرأ من نفس بيانات "المحافظات" الحقيقية بدل قائمة ثابتة، عشان أي إضافة/
+    // حذف/تعديل اسم من لوحة التحكم ينعكس هنا تلقائيًا من غير ما حد يحتاج يعدّل الفوتر يدويًا
+    getGovernorates().then(setGovernorates).catch(() => setGovernorates([]));
   }, []);
 
   const socialLinks = Object.entries(SOCIAL_LABELS)
@@ -62,8 +68,7 @@ export default function Footer() {
             </span>
           </div>
           <p className="max-w-[32ch] text-sm text-cream/70">
-            {settings.site_description ||
-              'كيان شبابي أهلي يعمل على تمكين الشباب وتحقيق التنمية الشاملة في المحافظات المصرية.'}
+            {settings.site_description || SITE_DEFAULTS.site_description}
           </p>
         </div>
 
@@ -82,24 +87,23 @@ export default function Footer() {
         <div>
           <h5 className="mb-4 font-utility text-sm text-cream">المحافظات</h5>
           <ul className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-            <li>شمال سيناء</li>
-            <li>جنوب سيناء</li>
-            <li>أسوان</li>
-            <li>الوادي الجديد</li>
-            <li>مطروح</li>
-            <li>البحر الأحمر</li>
-            <li>السويس</li>
-            <li>الإسماعيلية</li>
-            <li>القاهرة الكبرى</li>
-            <li>الشرقية</li>
+            {(governorates.length ? governorates : GOVERNORATES.map((name) => ({ id: name, name, slug: '' }))).map((g) => (
+              <li key={g.id}>
+                {g.slug ? (
+                  <Link href={`/governorates/${g.slug}`} className="hover:text-gold-2">{g.name}</Link>
+                ) : (
+                  g.name
+                )}
+              </li>
+            ))}
           </ul>
         </div>
 
         <div>
           <h5 className="mb-4 font-utility text-sm text-cream">تواصل</h5>
           <ul className="space-y-2 text-sm">
-            <li className="flex items-center gap-2"><MailIcon className="h-3.5 w-3.5 shrink-0 opacity-60" /> {settings.contact_email || 'info@rowwad-borders.example'}</li>
-            <li className="flex items-center gap-2"><PhoneIcon className="h-3.5 w-3.5 shrink-0 opacity-60" /> {settings.contact_phone || '٠٢ ١٢٣٤ ٥٦٧٨'}</li>
+            <li className="flex items-center gap-2"><MailIcon className="h-3.5 w-3.5 shrink-0 opacity-60" /> {settings.contact_email || SITE_DEFAULTS.contact_email}</li>
+            <li className="flex items-center gap-2"><PhoneIcon className="h-3.5 w-3.5 shrink-0 opacity-60" /> {settings.contact_phone || SITE_DEFAULTS.contact_phone}</li>
             {settings.contact_address && (
               <li className="flex items-center gap-2"><PinIcon className="h-3.5 w-3.5 shrink-0 opacity-60" /> {settings.contact_address}</li>
             )}
@@ -160,7 +164,7 @@ export default function Footer() {
       </div>
 
       <div className="mx-auto mt-10 flex max-w-[1180px] flex-wrap items-center justify-between gap-3 border-t border-gold/15 pt-6 text-xs">
-        <span>© {new Date().getFullYear()} {siteName} {siteTagline}. جميع الحقوق محفوظة.</span>
+        <span>© {new Date().getFullYear()} {siteName} {siteTagline}. {settings.footer_rights_text || SITE_DEFAULTS.footer_rights_text}.</span>
         {!isAdmin && (
           <Link href="/admin/login" className="text-cream/50 hover:text-gold-2">
             دخول لوحة التحكم

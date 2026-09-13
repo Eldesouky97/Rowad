@@ -5,6 +5,7 @@ import { getSiteSettings, adminUpdateSiteSettings, adminUploadSiteLogo, ApiExcep
 import type { SiteSettings, SectionsVisibility } from '@/lib/types';
 import { PhoneIcon, MailIcon, PinIcon, LinkIcon, PlusIcon, CloseIcon } from '@/components/icons';
 import { inputClass, labelClass, SectionCard, ErrorText, ARTICLE_CATEGORIES, type Notify } from './shared';
+import { SITE_DEFAULTS } from '@/lib/siteDefaults';
 
 const SOCIAL_FIELDS: { key: keyof SiteSettings; label: string; placeholder: string }[] = [
   { key: 'social_facebook', label: 'فيسبوك', placeholder: 'https://facebook.com/...' },
@@ -88,7 +89,21 @@ export default function SiteSettingsManager({ showToast }: { showToast: Notify }
       const value = String(form.get(key) || '').trim();
       raw[key] = value || null;
     }
-    const textFields: (keyof SiteSettings)[] = ['site_name', 'site_tagline', 'site_description', 'about_text', 'vision_text', 'mission_text'];
+    const textFields: (keyof SiteSettings)[] = [
+      'site_name', 'site_tagline', 'site_description', 'about_text', 'vision_text', 'mission_text',
+      'hero_badge_text', 'hero_title_line1', 'hero_title_line2', 'hero_subtitle', 'hero_cta_primary_label', 'hero_cta_secondary_label',
+      'programs_tag', 'programs_title',
+      'events_tag', 'events_title', 'events_subtitle',
+      'articles_tag', 'articles_title',
+      'testimonials_tag', 'testimonials_title',
+      'gallery_tag', 'gallery_title',
+      'governorates_tag', 'governorates_title',
+      'cta_title', 'cta_subtitle', 'cta_button_label',
+      'footer_rights_text',
+      'about_hero_tag', 'about_hero_title', 'about_hero_subtitle',
+      'activities_hero_tag', 'activities_hero_title', 'activities_hero_subtitle',
+      'contact_hero_tag', 'contact_hero_title', 'contact_hero_subtitle',
+    ];
     for (const key of textFields) {
       raw[key] = String(form.get(key) || '').trim() || null;
     }
@@ -137,15 +152,19 @@ export default function SiteSettingsManager({ showToast }: { showToast: Notify }
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass}>اسم الكيان</label>
-            <input name="site_name" defaultValue={settings.site_name ?? ''} placeholder="رُوَّاد" className={inputClass} />
+            <input name="site_name" defaultValue={settings.site_name ?? SITE_DEFAULTS.site_name} className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>الوصف الفرعي (تحت الاسم)</label>
-            <input name="site_tagline" defaultValue={settings.site_tagline ?? ''} placeholder="المحافظات الحدودية" className={inputClass} />
+            <input name="site_tagline" defaultValue={settings.site_tagline ?? SITE_DEFAULTS.site_tagline} placeholder="المحافظات الحدودية" className={inputClass} />
           </div>
           <div className="sm:col-span-2">
             <label className={labelClass}>نبذة مختصرة عن الكيان</label>
-            <textarea name="site_description" rows={2} defaultValue={settings.site_description ?? ''} placeholder="كيان شبابي أهلي يعمل على تمكين الشباب وتحقيق التنمية الشاملة في المحافظات المصرية." className={inputClass} />
+            <textarea name="site_description" rows={2} defaultValue={settings.site_description ?? SITE_DEFAULTS.site_description} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>نص حقوق النشر في الفوتر</label>
+            <input name="footer_rights_text" defaultValue={settings.footer_rights_text ?? SITE_DEFAULTS.footer_rights_text} className={inputClass} />
           </div>
           <div className="sm:col-span-2">
             <label className={labelClass}>شعار الموقع (اللوجو)</label>
@@ -164,42 +183,229 @@ export default function SiteSettingsManager({ showToast }: { showToast: Notify }
         </div>
       </SectionCard>
 
-      <SectionCard title="من نحن — رؤيتنا ورسالتنا" description="النصوص والأرقام الظاهرة في قسم «من نحن» بالصفحة الرئيسية — اتركها فاضية لعرض النص الافتراضي">
+      <SectionCard title="قسم البداية (Hero)" description="أول حاجة يشوفها الزائر أعلى الصفحة الرئيسية — العنوان الرئيسي ونص الشعار وأزرار الدعوة لاتخاذ إجراء">
+        <div className="grid gap-4">
+          <div>
+            <label className={labelClass}>نص الشارة العلوية (اتركها فاضية لإخفائها)</label>
+            <input name="hero_badge_text" defaultValue={settings.hero_badge_text ?? SITE_DEFAULTS.hero_badge_text} placeholder="مثال: مبادرة أهلية معتمدة" className={inputClass} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>السطر الأول من العنوان</label>
+              <input name="hero_title_line1" defaultValue={settings.hero_title_line1 ?? SITE_DEFAULTS.hero_title_line1} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>السطر الثاني (بلون مميّز)</label>
+              <input name="hero_title_line2" defaultValue={settings.hero_title_line2 ?? SITE_DEFAULTS.hero_title_line2} className={inputClass} />
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>الوصف تحت العنوان</label>
+            <textarea name="hero_subtitle" rows={2} defaultValue={settings.hero_subtitle ?? SITE_DEFAULTS.hero_subtitle} className={inputClass} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>زرار الدعوة الأساسي</label>
+              <input name="hero_cta_primary_label" defaultValue={settings.hero_cta_primary_label ?? SITE_DEFAULTS.hero_cta_primary_label} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>زرار الدعوة الثانوي</label>
+              <input name="hero_cta_secondary_label" defaultValue={settings.hero_cta_secondary_label ?? SITE_DEFAULTS.hero_cta_secondary_label} className={inputClass} />
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="من نحن — رؤيتنا ورسالتنا" description="النصوص والأرقام الظاهرة في قسم «من نحن» بالصفحة الرئيسية — القيم الحالية المعروضة فعليًا على الموقع، عدّل أي حقل واحفظ">
         <div className="grid gap-4">
           <div>
             <label className={labelClass}>نبذة عن الكيان</label>
-            <textarea name="about_text" rows={2} defaultValue={settings.about_text ?? ''} className={inputClass} />
+            <textarea name="about_text" rows={2} defaultValue={settings.about_text ?? SITE_DEFAULTS.about_text} className={inputClass} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={labelClass}>رؤيتنا</label>
-              <textarea name="vision_text" rows={3} defaultValue={settings.vision_text ?? ''} className={inputClass} />
+              <textarea name="vision_text" rows={3} defaultValue={settings.vision_text ?? SITE_DEFAULTS.vision_text} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>رسالتنا</label>
-              <textarea name="mission_text" rows={3} defaultValue={settings.mission_text ?? ''} className={inputClass} />
+              <textarea name="mission_text" rows={3} defaultValue={settings.mission_text ?? SITE_DEFAULTS.mission_text} className={inputClass} />
             </div>
           </div>
           <div>
             <label className={labelClass}>القيم (افصل بينها بفاصلة)</label>
-            <input name="values" defaultValue={settings.values?.join(', ') ?? ''} placeholder="التنمية المستدامة, الابتكار والإبداع, العمل الجماعي" className={inputClass} />
+            <input name="values" defaultValue={settings.values?.length ? settings.values.join(', ') : SITE_DEFAULTS.values.join(', ')} className={inputClass} />
           </div>
           <div className="grid gap-4 sm:grid-cols-4">
             <div>
               <label className={labelClass}>عدد المستفيدين</label>
-              <input name="stat_beneficiaries" type="number" min={0} defaultValue={settings.stat_beneficiaries ?? ''} placeholder="1200" className={inputClass} />
+              <input name="stat_beneficiaries" type="number" min={0} defaultValue={settings.stat_beneficiaries ?? SITE_DEFAULTS.stat_beneficiaries} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>المشاريع المنجزة</label>
-              <input name="stat_projects" type="number" min={0} defaultValue={settings.stat_projects ?? ''} placeholder="60" className={inputClass} />
+              <input name="stat_projects" type="number" min={0} defaultValue={settings.stat_projects ?? SITE_DEFAULTS.stat_projects} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>المحافظات المستهدفة</label>
-              <input name="stat_governorates" type="number" min={0} defaultValue={settings.stat_governorates ?? ''} placeholder="10" className={inputClass} />
+              <input name="stat_governorates" type="number" min={0} defaultValue={settings.stat_governorates ?? SITE_DEFAULTS.stat_governorates} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>نسبة الرضا (٪)</label>
-              <input name="stat_satisfaction" type="number" min={0} max={100} defaultValue={settings.stat_satisfaction ?? ''} placeholder="94" className={inputClass} />
+              <input name="stat_satisfaction" type="number" min={0} max={100} defaultValue={settings.stat_satisfaction ?? SITE_DEFAULTS.stat_satisfaction} className={inputClass} />
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="عناوين أقسام الصفحة الرئيسية" description="النص الصغير أعلى كل قسم وعنوانه الرئيسي — بنفس ترتيب ظهورهم في الصفحة">
+        <div className="grid gap-6">
+          <div className="grid gap-3 rounded-xl border border-ink/10 p-4 sm:grid-cols-2">
+            <p className="text-xs font-bold text-ink/50 sm:col-span-2">برامجنا</p>
+            <div>
+              <label className={labelClass}>النص الصغير</label>
+              <input name="programs_tag" defaultValue={settings.programs_tag ?? SITE_DEFAULTS.programs_tag} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>العنوان</label>
+              <input name="programs_title" defaultValue={settings.programs_title ?? SITE_DEFAULTS.programs_title} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-xl border border-ink/10 p-4 sm:grid-cols-2">
+            <p className="text-xs font-bold text-ink/50 sm:col-span-2">البوابة الإخبارية</p>
+            <div>
+              <label className={labelClass}>النص الصغير</label>
+              <input name="articles_tag" defaultValue={settings.articles_tag ?? SITE_DEFAULTS.articles_tag} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>العنوان</label>
+              <input name="articles_title" defaultValue={settings.articles_title ?? SITE_DEFAULTS.articles_title} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-xl border border-ink/10 p-4 sm:grid-cols-2">
+            <p className="text-xs font-bold text-ink/50 sm:col-span-2">الفعاليات القادمة</p>
+            <div>
+              <label className={labelClass}>النص الصغير</label>
+              <input name="events_tag" defaultValue={settings.events_tag ?? SITE_DEFAULTS.events_tag} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>العنوان</label>
+              <input name="events_title" defaultValue={settings.events_title ?? SITE_DEFAULTS.events_title} className={inputClass} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>الوصف تحت العنوان</label>
+              <textarea name="events_subtitle" rows={2} defaultValue={settings.events_subtitle ?? SITE_DEFAULTS.events_subtitle} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-xl border border-ink/10 p-4 sm:grid-cols-2">
+            <p className="text-xs font-bold text-ink/50 sm:col-span-2">قصص نجاح</p>
+            <div>
+              <label className={labelClass}>النص الصغير</label>
+              <input name="testimonials_tag" defaultValue={settings.testimonials_tag ?? SITE_DEFAULTS.testimonials_tag} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>العنوان</label>
+              <input name="testimonials_title" defaultValue={settings.testimonials_title ?? SITE_DEFAULTS.testimonials_title} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-xl border border-ink/10 p-4 sm:grid-cols-2">
+            <p className="text-xs font-bold text-ink/50 sm:col-span-2">معرض الصور</p>
+            <div>
+              <label className={labelClass}>النص الصغير</label>
+              <input name="gallery_tag" defaultValue={settings.gallery_tag ?? SITE_DEFAULTS.gallery_tag} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>العنوان</label>
+              <input name="gallery_title" defaultValue={settings.gallery_title ?? SITE_DEFAULTS.gallery_title} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-xl border border-ink/10 p-4 sm:grid-cols-2">
+            <p className="text-xs font-bold text-ink/50 sm:col-span-2">المحافظات</p>
+            <div>
+              <label className={labelClass}>النص الصغير</label>
+              <input name="governorates_tag" defaultValue={settings.governorates_tag ?? SITE_DEFAULTS.governorates_tag} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>العنوان</label>
+              <input name="governorates_title" defaultValue={settings.governorates_title ?? SITE_DEFAULTS.governorates_title} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-xl border border-ink/10 p-4">
+            <p className="text-xs font-bold text-ink/50">شريط الدعوة لاتخاذ إجراء (قبل تواصل معنا)</p>
+            <div>
+              <label className={labelClass}>العنوان</label>
+              <input name="cta_title" defaultValue={settings.cta_title ?? SITE_DEFAULTS.cta_title} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>الوصف</label>
+              <textarea name="cta_subtitle" rows={2} defaultValue={settings.cta_subtitle ?? SITE_DEFAULTS.cta_subtitle} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>نص الزرار</label>
+              <input name="cta_button_label" defaultValue={settings.cta_button_label ?? SITE_DEFAULTS.cta_button_label} className={inputClass} />
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="هيدر الصفحات المستقلة" description="النص الصغير والعنوان والوصف أعلى صفحات «من نحن» و«الأنشطة» و«تواصل معنا» المستقلة">
+        <div className="grid gap-6">
+          <div className="grid gap-3 rounded-xl border border-ink/10 p-4">
+            <p className="text-xs font-bold text-ink/50">صفحة «من نحن»</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className={labelClass}>النص الصغير</label>
+                <input name="about_hero_tag" defaultValue={settings.about_hero_tag ?? SITE_DEFAULTS.about_hero_tag} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>العنوان</label>
+                <input name="about_hero_title" defaultValue={settings.about_hero_title ?? SITE_DEFAULTS.about_hero_title} className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>الوصف</label>
+              <textarea name="about_hero_subtitle" rows={2} defaultValue={settings.about_hero_subtitle ?? SITE_DEFAULTS.about_hero_subtitle} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-xl border border-ink/10 p-4">
+            <p className="text-xs font-bold text-ink/50">صفحة «الأنشطة والفعاليات»</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className={labelClass}>النص الصغير</label>
+                <input name="activities_hero_tag" defaultValue={settings.activities_hero_tag ?? SITE_DEFAULTS.activities_hero_tag} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>العنوان</label>
+                <input name="activities_hero_title" defaultValue={settings.activities_hero_title ?? SITE_DEFAULTS.activities_hero_title} className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>الوصف</label>
+              <textarea name="activities_hero_subtitle" rows={2} defaultValue={settings.activities_hero_subtitle ?? SITE_DEFAULTS.activities_hero_subtitle} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-xl border border-ink/10 p-4">
+            <p className="text-xs font-bold text-ink/50">صفحة «تواصل معنا»</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className={labelClass}>النص الصغير</label>
+                <input name="contact_hero_tag" defaultValue={settings.contact_hero_tag ?? SITE_DEFAULTS.contact_hero_tag} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>العنوان</label>
+                <input name="contact_hero_title" defaultValue={settings.contact_hero_title ?? SITE_DEFAULTS.contact_hero_title} className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>الوصف</label>
+              <textarea name="contact_hero_subtitle" rows={2} defaultValue={settings.contact_hero_subtitle ?? SITE_DEFAULTS.contact_hero_subtitle} className={inputClass} />
             </div>
           </div>
         </div>
@@ -209,15 +415,15 @@ export default function SiteSettingsManager({ showToast }: { showToast: Notify }
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label className={labelClass}><PhoneIcon className="ml-1 inline h-3.5 w-3.5" /> رقم الهاتف</label>
-            <input name="contact_phone" defaultValue={settings.contact_phone ?? ''} placeholder="٠٢ ١٢٣٤ ٥٦٧٨" className={inputClass} />
+            <input name="contact_phone" defaultValue={settings.contact_phone ?? SITE_DEFAULTS.contact_phone} className={inputClass} />
           </div>
           <div>
             <label className={labelClass}><MailIcon className="ml-1 inline h-3.5 w-3.5" /> البريد الإلكتروني</label>
-            <input name="contact_email" type="email" defaultValue={settings.contact_email ?? ''} placeholder="info@rowwad.org" className={inputClass} />
+            <input name="contact_email" type="email" defaultValue={settings.contact_email ?? SITE_DEFAULTS.contact_email} className={inputClass} />
           </div>
           <div>
             <label className={labelClass}><PinIcon className="ml-1 inline h-3.5 w-3.5" /> العنوان</label>
-            <input name="contact_address" defaultValue={settings.contact_address ?? ''} placeholder="القاهرة، مصر" className={inputClass} />
+            <input name="contact_address" defaultValue={settings.contact_address ?? SITE_DEFAULTS.contact_address} className={inputClass} />
           </div>
         </div>
       </SectionCard>

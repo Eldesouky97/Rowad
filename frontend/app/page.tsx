@@ -22,6 +22,7 @@ import {
 } from '@/lib/api';
 import { getMyBookedEventIds } from '@/lib/bookings';
 import type { EventItem, Article, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum, SectionsVisibility, SiteSettings } from '@/lib/types';
+import { SITE_DEFAULTS } from '@/lib/siteDefaults';
 import Counter from '@/components/Counter';
 import {
   CalendarIcon, ArrowIcon, HandsIcon, BookIcon, CompassIcon,
@@ -211,46 +212,49 @@ export default function HomePage() {
 
         <div className="relative mx-auto grid max-w-[1180px] gap-10 px-5 pb-16 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
           <div>
-            <div className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-gold-2/25 bg-gold-2/10 px-4 py-1.5 font-utility text-xs font-bold tracking-[0.1em] text-gold-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-soft-pulse absolute inline-flex h-full w-full rounded-full bg-gold-2" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-gold-2" />
-              </span>
-              مبادرة أهلية معتمدة
-            </div>
+            {(siteSettings.hero_badge_text || SITE_DEFAULTS.hero_badge_text) && (
+              <div className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-gold-2/25 bg-gold-2/10 px-4 py-1.5 font-utility text-xs font-bold tracking-[0.1em] text-gold-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-soft-pulse absolute inline-flex h-full w-full rounded-full bg-gold-2" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-gold-2" />
+                </span>
+                {siteSettings.hero_badge_text || SITE_DEFAULTS.hero_badge_text}
+              </div>
+            )}
             <h1 className="font-display text-4xl font-bold leading-tight sm:text-5xl">
-              نحو تنمية شاملة ومستدامة
+              {siteSettings.hero_title_line1 || SITE_DEFAULTS.hero_title_line1}
               <br />
-              <em className="not-italic bg-gradient-to-l from-gold-2 to-amber-200 bg-clip-text text-transparent">في المحافظات الحدودية المصرية</em>
+              <em className="not-italic bg-gradient-to-l from-gold-2 to-amber-200 bg-clip-text text-transparent">
+                {siteSettings.hero_title_line2 || SITE_DEFAULTS.hero_title_line2}
+              </em>
             </h1>
             <p className="mt-6 max-w-[46ch] text-lg opacity-90">
-              تمكين الشباب وبناء المستقبل — &quot;رُوَّاد&quot; كيان شبابي يعمل على تحويل موقع
-              محافظات مصر الحدودية من تحدٍ إلى ميزة، ومن حدّ فاصل إلى بوابة تنمية.
+              {siteSettings.hero_subtitle || SITE_DEFAULTS.hero_subtitle}
             </p>
             <div className="mt-9 flex flex-wrap gap-4">
               <Link
                 href="/activities"
                 className="group inline-flex items-center gap-2 rounded-full bg-violet-600 px-7 py-3.5 font-utility text-sm font-bold text-white shadow-[0_10px_30px_-8px_rgba(124,58,237,0.7)] transition-all hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-[0_14px_36px_-8px_rgba(124,58,237,0.85)]"
               >
-                <CalendarIcon className="h-4 w-4 transition-transform group-hover:scale-110" /> ابدأ رحلتك
+                <CalendarIcon className="h-4 w-4 transition-transform group-hover:scale-110" /> {siteSettings.hero_cta_primary_label || SITE_DEFAULTS.hero_cta_primary_label}
               </Link>
               <Link href="/about" className="inline-flex items-center gap-2 rounded-full border-2 border-cream/70 px-7 py-3.5 font-utility text-sm font-bold transition hover:-translate-y-0.5 hover:bg-gold/10">
-                <ArrowIcon className="h-4 w-4" /> تعرف أكثر
+                <ArrowIcon className="h-4 w-4" /> {siteSettings.hero_cta_secondary_label || SITE_DEFAULTS.hero_cta_secondary_label}
               </Link>
             </div>
 
-            {/* شريط إحصائيات مصغّر — لمسة موثوقية سريعة قبل ما الزائر ينزل للصفحة */}
+            {/* شريط إحصائيات مصغّر — لمسة موثوقية سريعة قبل ما الزائر ينزل للصفحة، بتاخد نفس أرقام "من نحن" تحت */}
             <div className="mt-10 flex flex-wrap gap-x-8 gap-y-4 border-t border-cream/10 pt-6">
               <div>
-                <b className="font-utility text-2xl font-black text-gold-2"><Counter value={1200} prefix="+" /></b>
+                <b className="font-utility text-2xl font-black text-gold-2"><Counter value={siteSettings.stat_beneficiaries ?? SITE_DEFAULTS.stat_beneficiaries} prefix="+" /></b>
                 <span className="mr-1.5 text-xs opacity-70">مستفيد</span>
               </div>
               <div>
-                <b className="font-utility text-2xl font-black text-gold-2"><Counter value={60} prefix="+" /></b>
+                <b className="font-utility text-2xl font-black text-gold-2"><Counter value={siteSettings.stat_projects ?? SITE_DEFAULTS.stat_projects} prefix="+" /></b>
                 <span className="mr-1.5 text-xs opacity-70">مشروع منجز</span>
               </div>
               <div>
-                <b className="font-utility text-2xl font-black text-gold-2"><Counter value={10} /></b>
+                <b className="font-utility text-2xl font-black text-gold-2"><Counter value={siteSettings.stat_governorates ?? SITE_DEFAULTS.stat_governorates} /></b>
                 <span className="mr-1.5 text-xs opacity-70">محافظات</span>
               </div>
             </div>
@@ -299,29 +303,26 @@ export default function HomePage() {
             كيان متخصص في دعم وتطوير المحافظات الحدودية المصرية
           </h2>
           <p className="mt-4 max-w-[70ch] opacity-85">
-            {siteSettings.about_text ||
-              'نعمل من خلال برامج ومبادرات متنوعة على بناء القدرات القيادية والريادية لأبناء وبنات المحافظات، وربطهم بمؤسسات الدولة والقطاع الخاص، وتوثيق قصص نجاحهم لتكون نموذجًا يُحتذى.'}
+            {siteSettings.about_text || SITE_DEFAULTS.about_text}
           </p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-2">
             <div className="rounded-[20px] bg-night p-8 text-cream">
               <h3 className="mb-3 font-utility text-lg text-gold-2">رؤيتنا</h3>
               <p className="opacity-90">
-                {siteSettings.vision_text ||
-                  'أن نكون المنصة الرائدة في دعم التنمية الشاملة في المحافظات الحدودية، وخلق بيئة محفزة للشباب والمبادرات التنموية.'}
+                {siteSettings.vision_text || SITE_DEFAULTS.vision_text}
               </p>
             </div>
             <div className="rounded-[20px] border border-gold/25 bg-white p-8">
               <h3 className="mb-3 font-utility text-lg text-rust">رسالتنا</h3>
               <p className="opacity-85">
-                {siteSettings.mission_text ||
-                  'تمكين المجتمعات المحلية من خلال برامج تدريبية ومبادرات تنموية مستدامة تهدف إلى تحسين جودة الحياة وتعزيز الاقتصاد المحلي.'}
+                {siteSettings.mission_text || SITE_DEFAULTS.mission_text}
               </p>
             </div>
           </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            {(siteSettings.values?.length ? siteSettings.values : ['التنمية المستدامة', 'الابتكار والإبداع', 'العمل الجماعي', 'التميز والجودة']).map((v) => (
+            {(siteSettings.values?.length ? siteSettings.values : SITE_DEFAULTS.values).map((v) => (
               <span key={v} className="rounded-full border border-rust/30 bg-white px-4 py-2 font-utility text-xs font-bold text-rust">
                 {v}
               </span>
@@ -329,10 +330,10 @@ export default function HomePage() {
           </div>
 
           <Reveal variant="stagger" className="mt-12 grid grid-cols-2 gap-6 border-t border-gold/20 pt-10 md:grid-cols-4">
-            <Stat value={siteSettings.stat_beneficiaries ?? 1200} prefix="+" label="شاب وشابة مستفيدون" />
-            <Stat value={siteSettings.stat_projects ?? 60} prefix="+" label="مشروع منجز" />
-            <Stat value={siteSettings.stat_governorates ?? 10} label="محافظات مستهدفة" />
-            <Stat value={siteSettings.stat_satisfaction ?? 94} suffix="٪" label="نسبة رضا المستفيدين" />
+            <Stat value={siteSettings.stat_beneficiaries ?? SITE_DEFAULTS.stat_beneficiaries} prefix="+" label="شاب وشابة مستفيدون" />
+            <Stat value={siteSettings.stat_projects ?? SITE_DEFAULTS.stat_projects} prefix="+" label="مشروع منجز" />
+            <Stat value={siteSettings.stat_governorates ?? SITE_DEFAULTS.stat_governorates} label="محافظات مستهدفة" />
+            <Stat value={siteSettings.stat_satisfaction ?? SITE_DEFAULTS.stat_satisfaction} suffix="٪" label="نسبة رضا المستفيدين" />
           </Reveal>
 
           <div className="mt-10">
@@ -348,9 +349,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-8 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-rust">
-              <span className="h-0.5 w-6 bg-rust" /> برامجنا
+              <span className="h-0.5 w-6 bg-rust" /> {siteSettings.programs_tag || SITE_DEFAULTS.programs_tag}
             </p>
-            <h2 className="font-display text-3xl">برامج متخصصة لتمكين الشباب ودعم التنمية</h2>
+            <h2 className="font-display text-3xl">{siteSettings.programs_title || SITE_DEFAULTS.programs_title}</h2>
           </Reveal>
 
           <Reveal className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -413,9 +414,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-10 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-gold-2">
-              <span className="h-0.5 w-6 bg-gold-2" /> البوابة الإخبارية
+              <span className="h-0.5 w-6 bg-gold-2" /> {siteSettings.articles_tag || SITE_DEFAULTS.articles_tag}
             </p>
-            <h2 className="font-display text-3xl">آخر المقالات والأخبار حول تطوير المحافظات</h2>
+            <h2 className="font-display text-3xl">{siteSettings.articles_title || SITE_DEFAULTS.articles_title}</h2>
           </Reveal>
           <Reveal variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {articles.slice(0, 3).map((a) => (
@@ -435,11 +436,11 @@ export default function HomePage() {
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-10 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-rust">
-              <span className="h-0.5 w-6 bg-rust" /> الفعاليات القادمة
+              <span className="h-0.5 w-6 bg-rust" /> {siteSettings.events_tag || SITE_DEFAULTS.events_tag}
             </p>
-            <h2 className="font-display text-3xl">شارك في فعالياتنا وملتقياتنا</h2>
+            <h2 className="font-display text-3xl">{siteSettings.events_title || SITE_DEFAULTS.events_title}</h2>
             <p className="mt-3 opacity-85">
-              من الملتقيات الوطنية إلى القوافل التنموية والمعسكرات التطوعية، هذه أقرب محطاتنا القادمة.
+              {siteSettings.events_subtitle || SITE_DEFAULTS.events_subtitle}
             </p>
           </Reveal>
           <Reveal variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -466,9 +467,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-10 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-rust">
-              <span className="h-0.5 w-6 bg-rust" /> قصص نجاح
+              <span className="h-0.5 w-6 bg-rust" /> {siteSettings.testimonials_tag || SITE_DEFAULTS.testimonials_tag}
             </p>
-            <h2 className="font-display text-3xl">استمع إلى قصص شباب استفادوا من برامجنا</h2>
+            <h2 className="font-display text-3xl">{siteSettings.testimonials_title || SITE_DEFAULTS.testimonials_title}</h2>
           </Reveal>
           <Reveal variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {stories.map((s) => (
@@ -483,9 +484,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-10 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-gold-2">
-              <span className="h-0.5 w-6 bg-gold-2" /> معرض الصور
+              <span className="h-0.5 w-6 bg-gold-2" /> {siteSettings.gallery_tag || SITE_DEFAULTS.gallery_tag}
             </p>
-            <h2 className="font-display text-3xl">لحظات من فعالياتنا ومشاريعنا وإنجازاتنا</h2>
+            <h2 className="font-display text-3xl">{siteSettings.gallery_title || SITE_DEFAULTS.gallery_title}</h2>
           </Reveal>
 
           {/* ألبومات — شريط كروت قابل للسحب على الموبايل، شبكة على الشاشات الأوسع */}
@@ -548,9 +549,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <Reveal className="mb-10 max-w-[640px]">
             <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-rust">
-              <span className="h-0.5 w-6 bg-rust" /> المحافظات
+              <span className="h-0.5 w-6 bg-rust" /> {siteSettings.governorates_tag || SITE_DEFAULTS.governorates_tag}
             </p>
-            <h2 className="font-display text-3xl">نغطي المحافظات المصرية ببرامج ومبادرات متنوعة</h2>
+            <h2 className="font-display text-3xl">{siteSettings.governorates_title || SITE_DEFAULTS.governorates_title}</h2>
           </Reveal>
           <Reveal variant="stagger" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {governorates.map((g) => (
@@ -630,16 +631,16 @@ export default function HomePage() {
             </div>
             <div className="relative flex flex-wrap items-center justify-between gap-6">
               <div>
-                <h3 className="max-w-[34ch] font-display text-2xl">عندك فكرة مشروع أو مبادرة في محافظتك؟</h3>
+                <h3 className="max-w-[34ch] font-display text-2xl">{siteSettings.cta_title || SITE_DEFAULTS.cta_title}</h3>
                 <p className="mt-2 max-w-[44ch] opacity-90">
-                  رُوَّاد بيدعم شباب المحافظات بالتدريب والتمويل الأولي والربط بالجهات الشريكة.
+                  {siteSettings.cta_subtitle || SITE_DEFAULTS.cta_subtitle}
                 </p>
               </div>
               <a
                 href="#contact"
                 className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 font-utility text-sm font-bold text-violet-700 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-gold-2/40"
               >
-                <HandsIcon className="h-4 w-4 transition-transform group-hover:rotate-12" /> تواصل مع فريقنا
+                <HandsIcon className="h-4 w-4 transition-transform group-hover:rotate-12" /> {siteSettings.cta_button_label || SITE_DEFAULTS.cta_button_label}
               </a>
             </div>
           </div>

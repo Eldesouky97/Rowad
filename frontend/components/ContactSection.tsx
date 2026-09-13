@@ -5,6 +5,7 @@ import { sendContactMessage, getSiteSettings, ApiException } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { MailIcon, PhoneIcon, PinIcon, LinkIcon } from '@/components/icons';
 import type { SiteSettings } from '@/lib/types';
+import { SITE_DEFAULTS } from '@/lib/siteDefaults';
 
 const GOVS = [
   'شمال سيناء', 'جنوب سيناء', 'أسوان', 'الوادي الجديد', 'مطروح',
@@ -77,15 +78,15 @@ export default function ContactSection() {
         <h3 className="mb-5 font-utility text-lg text-gold-2">بيانات التواصل</h3>
         <div className="flex items-center gap-3 py-3 text-sm">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-2/15 text-gold-2"><MailIcon className="h-4 w-4" /></span>
-          {settings.contact_email || 'info@rowwad-borders.example'}
+          {settings.contact_email || SITE_DEFAULTS.contact_email}
         </div>
         <div className="flex items-center gap-3 border-t border-gold/15 py-3 text-sm">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-2/15 text-gold-2"><PhoneIcon className="h-4 w-4" /></span>
-          {settings.contact_phone || '٠٢ ١٢٣٤ ٥٦٧٨'}
+          {settings.contact_phone || SITE_DEFAULTS.contact_phone}
         </div>
         <div className="flex items-center gap-3 border-t border-gold/15 py-3 text-sm">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-2/15 text-gold-2"><PinIcon className="h-4 w-4" /></span>
-          {settings.contact_address || 'مقر رئيسي بالقاهرة، ومكاتب تنسيق في المحافظات'}
+          {settings.contact_address || SITE_DEFAULTS.contact_address}
         </div>
         {socialLinks.length > 0 && (
           <div className="mt-6 flex gap-2.5">

@@ -1,4 +1,7 @@
 import Reveal from '@/components/Reveal';
+import { getSiteSettings } from '@/lib/publicApi';
+import { SITE_DEFAULTS } from '@/lib/siteDefaults';
+import type { SiteSettings } from '@/lib/types';
 import { SparkIcon, HandsIcon, FlagIcon, BookIcon, LinkIcon, UsersIcon, CompassIcon, StarIcon, PinIcon } from '@/components/icons';
 
 const GOALS = [
@@ -27,21 +30,20 @@ const TIMELINE = [
 
 export const metadata = { title: 'من نحن — رُوَّاد المحافظات الحدودية' };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const settings = await getSiteSettings().catch((): SiteSettings => ({}));
   return (
     <>
       <section className="bg-night pb-14 pt-16 text-cream">
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-gold-2">
-            <span className="h-0.5 w-6 bg-gold-2" /> من نحن
+            <span className="h-0.5 w-6 bg-gold-2" /> {settings.about_hero_tag || SITE_DEFAULTS.about_hero_tag}
           </p>
           <h1 className="max-w-[20ch] font-display text-3xl sm:text-4xl">
-            كيان شبابي أهلي وُلد من رحم الحدود
+            {settings.about_hero_title || SITE_DEFAULTS.about_hero_title}
           </h1>
           <p className="mt-5 max-w-[62ch] text-lg opacity-80">
-            &quot;رُوَّاد المحافظات الحدودية&quot; مبادرة شبابية مستقلة تجمع شباب المحافظات المصرية
-            تحت مظلة واحدة تعمل على تنمية القدرات، ودعم المشروعات الصغيرة، وتوثيق الحكاية
-            الحقيقية لهذه المحافظات بعيدًا عن الصورة النمطية.
+            {settings.about_hero_subtitle || SITE_DEFAULTS.about_hero_subtitle}
           </p>
         </div>
       </section>

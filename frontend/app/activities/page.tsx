@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import EventCard from '@/components/EventCard';
 import BookingModal from '@/components/BookingModal';
 import Reveal from '@/components/Reveal';
-import { getEvents } from '@/lib/api';
+import { getEvents, getSiteSettings } from '@/lib/api';
 import { getMyBookedEventIds } from '@/lib/bookings';
-import type { EventItem } from '@/lib/types';
+import type { EventItem, SiteSettings } from '@/lib/types';
+import { SITE_DEFAULTS } from '@/lib/siteDefaults';
 import { CalendarIcon } from '@/components/icons';
 
 type Filter = 'all' | 'upcoming' | 'past';
@@ -17,9 +18,11 @@ export default function ActivitiesPage() {
   const [filter, setFilter] = useState<Filter>('all');
   const [bookedIds, setBookedIds] = useState<string[]>([]);
   const [bookingEvent, setBookingEvent] = useState<EventItem | null>(null);
+  const [settings, setSettings] = useState<SiteSettings>({});
 
   useEffect(() => {
     setBookedIds(getMyBookedEventIds());
+    getSiteSettings().then(setSettings).catch(() => setSettings({}));
   }, []);
 
   useEffect(() => {
@@ -35,13 +38,13 @@ export default function ActivitiesPage() {
       <section className="bg-night pb-10 pt-16 text-cream">
         <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
           <p className="mb-3 flex items-center gap-2 font-utility text-sm font-bold text-gold-2">
-            <span className="h-0.5 w-6 bg-gold-2" /> الأنشطة والفعاليات
+            <span className="h-0.5 w-6 bg-gold-2" /> {settings.activities_hero_tag || SITE_DEFAULTS.activities_hero_tag}
           </p>
           <h1 className="max-w-[22ch] font-display text-3xl sm:text-4xl">
-            من الملتقى الوطني إلى المعسكر التطوعي
+            {settings.activities_hero_title || SITE_DEFAULTS.activities_hero_title}
           </h1>
           <p className="mt-4 max-w-[60ch] opacity-75">
-            تصفّح فعالياتنا القادمة والسابقة، واحجز مكانك مباشرة قبل امتلاء المقاعد.
+            {settings.activities_hero_subtitle || SITE_DEFAULTS.activities_hero_subtitle}
           </p>
         </div>
       </section>

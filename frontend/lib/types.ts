@@ -271,6 +271,42 @@ export interface SiteSettings {
   article_categories?: string[];
   /** لو مفعّل: بمجرد ما مقال يبقى منشورًا فعليًا (سوبر أدمن ينشئه مباشرة، أو يوافق عليه من "بانتظار المراجعة")، نوافذ مشاركة السوشيال ميديا بتتفتح تلقائيًا بدل ما تنتظر ضغطة الزرار */
   auto_share_on_publish?: boolean;
+  /** نصوص قسم البداية (Hero) في الصفحة الرئيسية — فراغ = يظهر النص الافتراضي المدمج بالكود (راجع lib/siteDefaults.ts) */
+  hero_badge_text?: string;
+  hero_title_line1?: string;
+  hero_title_line2?: string;
+  hero_subtitle?: string;
+  hero_cta_primary_label?: string;
+  hero_cta_secondary_label?: string;
+  /** عنوان فرعي صغير (tag) + عنوان رئيسي (title) + وصف اختياري (subtitle) لكل قسم بالصفحة الرئيسية — فراغ = النص الافتراضي المدمج بالكود (راجع lib/siteDefaults.ts) */
+  programs_tag?: string;
+  programs_title?: string;
+  events_tag?: string;
+  events_title?: string;
+  events_subtitle?: string;
+  articles_tag?: string;
+  articles_title?: string;
+  testimonials_tag?: string;
+  testimonials_title?: string;
+  gallery_tag?: string;
+  gallery_title?: string;
+  governorates_tag?: string;
+  governorates_title?: string;
+  cta_title?: string;
+  cta_subtitle?: string;
+  cta_button_label?: string;
+  /** نص حقوق النشر في الفوتر (بعد اسم الكيان والسنة) — فراغ = "جميع الحقوق محفوظة" */
+  footer_rights_text?: string;
+  /** عنوان + وصف الهيدر (Hero) في الصفحات المستقلة — راجع lib/siteDefaults.ts للنص الافتراضي */
+  about_hero_tag?: string;
+  about_hero_title?: string;
+  about_hero_subtitle?: string;
+  activities_hero_tag?: string;
+  activities_hero_title?: string;
+  activities_hero_subtitle?: string;
+  contact_hero_tag?: string;
+  contact_hero_title?: string;
+  contact_hero_subtitle?: string;
 }
 
 export interface ApiError {
