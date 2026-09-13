@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import EventCard from '@/components/EventCard';
 import ArticleCard from '@/components/ArticleCard';
+import NewsSlider from '@/components/NewsSlider';
 import SuccessStoryCard from '@/components/SuccessStoryCard';
 import BookingModal from '@/components/BookingModal';
 import ContactSection from '@/components/ContactSection';
@@ -143,7 +144,7 @@ export default function HomePage() {
   useEffect(() => {
     setBookedIds(getMyBookedEventIds());
     getEvents('upcoming').then((list) => setEvents(list.slice(0, 3))).catch(() => setEvents([]));
-    getArticles().then((list) => setArticles(list.slice(0, 3))).catch(() => setArticles([]));
+    getArticles().then(setArticles).catch(() => setArticles([]));
     getPrograms().then(setPrograms).catch(() => setPrograms([]));
     getGovernorates().then(setGovernorates).catch(() => setGovernorates([]));
     getSuccessStories().then(setStories).catch(() => setStories([]));
@@ -171,6 +172,16 @@ export default function HomePage() {
   const galleryVisible =
     galleryFilter === 'all' ? gallery : gallery.filter((g) => g.album_id === galleryFilter);
 
+  // أحدث الأخبار للسلايدر أعلى الصفحة — المقالات المميّزة أولًا ثم الأحدث نشرًا
+  const sliderArticles = useMemo(() => {
+    return [...articles]
+      .sort((a, b) => {
+        if (a.is_featured !== b.is_featured) return a.is_featured ? -1 : 1;
+        return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+      })
+      .slice(0, 6);
+  }, [articles]);
+
   const programCategories = Array.from(new Set(programs.map((p) => p.category)));
   const programsVisible = programs.filter((p) => {
     const matchesCategory = programCategory === 'all' || p.category === programCategory;
@@ -181,6 +192,8 @@ export default function HomePage() {
 
   return (
     <>
+      {isVisible('articles') && <NewsSlider articles={sliderArticles} />}
+
       {/* ============ HERO ============ */}
       <section className="relative overflow-hidden bg-[radial-gradient(120%_140%_at_15%_-10%,#4338CA_0%,#1E1B4B_55%,#141235_100%)] pt-16 text-cream">
         {/* عناصر زخرفية عائمة — خفيفة وبطيئة عشان متلفتش الانتباه عن النص */}
@@ -405,7 +418,7 @@ export default function HomePage() {
             <h2 className="font-display text-3xl">آخر المقالات والأخبار حول تطوير المحافظات</h2>
           </Reveal>
           <Reveal variant="stagger" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {articles.map((a) => (
+            {articles.slice(0, 3).map((a) => (
               <ArticleCard key={a.id} article={a} />
             ))}
           </Reveal>

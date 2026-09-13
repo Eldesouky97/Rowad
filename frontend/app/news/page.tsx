@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import ArticleCard from '@/components/ArticleCard';
 import Reveal from '@/components/Reveal';
-import { getArticles } from '@/lib/api';
+import { getArticles, getSiteSettings } from '@/lib/api';
 import type { Article } from '@/lib/types';
 import { SearchIcon, EyeIcon, StarIcon, BookIcon } from '@/components/icons';
 
-const CATS = ['الكل', 'أخبار الكيان', 'تنمية مجتمعية', 'مقالات رأي'];
+const DEFAULT_CATEGORIES = ['أخبار الكيان', 'تنمية مجتمعية', 'مقالات رأي'];
 const ART_BG: Record<string, string> = {
   'art-1': 'bg-gradient-to-br from-sea to-[#0a4247]',
   'art-2': 'bg-gradient-to-br from-rust to-[#7a3620]',
@@ -24,11 +24,21 @@ function NewsPageInner() {
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('الكل');
   const [query, setQuery] = useState(searchParams.get('q') || '');
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
 
   // نجيب كل المقالات مرة واحدة عشان نحسب منها الخبر الرئيسي وقائمة "الأكثر قراءة"
   useEffect(() => {
     getArticles().then(setAllArticles).catch(() => setAllArticles([]));
   }, []);
+
+  // قائمة التصنيفات قابلة للتعديل من لوحة التحكم (إعدادات الموقع)
+  useEffect(() => {
+    getSiteSettings()
+      .then((s) => setCategories(s.article_categories?.length ? s.article_categories : DEFAULT_CATEGORIES))
+      .catch(() => setCategories(DEFAULT_CATEGORIES));
+  }, []);
+
+  const CATS = useMemo(() => ['الكل', ...categories], [categories]);
 
   useEffect(() => {
     setLoading(true);

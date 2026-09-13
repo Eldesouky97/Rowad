@@ -267,6 +267,10 @@ export interface SiteSettings {
   social_linkedin?: string;
   social_tiktok?: string;
   sections_visibility?: SectionsVisibility;
+  /** تصنيفات الأخبار/المقالات القابلة للتعديل من لوحة التحكم — فراغ = التصنيفات الافتراضية المدمجة بالكود */
+  article_categories?: string[];
+  /** لو مفعّل: بمجرد ما مقال يبقى منشورًا فعليًا (سوبر أدمن ينشئه مباشرة، أو يوافق عليه من "بانتظار المراجعة")، نوافذ مشاركة السوشيال ميديا بتتفتح تلقائيًا بدل ما تنتظر ضغطة الزرار */
+  auto_share_on_publish?: boolean;
 }
 
 export interface ApiError {

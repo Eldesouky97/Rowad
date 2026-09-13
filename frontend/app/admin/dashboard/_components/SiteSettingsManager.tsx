@@ -1,10 +1,10 @@
 'use client';
 
-import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useState } from 'react';
 import { getSiteSettings, adminUpdateSiteSettings, adminUploadSiteLogo, ApiException } from '@/lib/api';
 import type { SiteSettings, SectionsVisibility } from '@/lib/types';
-import { PhoneIcon, MailIcon, PinIcon, LinkIcon } from '@/components/icons';
-import { inputClass, labelClass, SectionCard, ErrorText, type Notify } from './shared';
+import { PhoneIcon, MailIcon, PinIcon, LinkIcon, PlusIcon, CloseIcon } from '@/components/icons';
+import { inputClass, labelClass, SectionCard, ErrorText, ARTICLE_CATEGORIES, type Notify } from './shared';
 
 const SOCIAL_FIELDS: { key: keyof SiteSettings; label: string; placeholder: string }[] = [
   { key: 'social_facebook', label: 'فيسبوك', placeholder: 'https://facebook.com/...' },
@@ -32,6 +32,9 @@ const SECTION_FIELDS: { key: keyof SectionsVisibility; label: string }[] = [
 export default function SiteSettingsManager({ showToast }: { showToast: Notify }) {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [visibility, setVisibility] = useState<SectionsVisibility>({});
+  const [categories, setCategories] = useState<string[]>(ARTICLE_CATEGORIES);
+  const [newCategory, setNewCategory] = useState('');
+  const [autoShare, setAutoShare] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -41,11 +44,31 @@ export default function SiteSettingsManager({ showToast }: { showToast: Notify }
       setSettings(s);
       setVisibility(s.sections_visibility ?? {});
       setLogoPreview(s.logo_url ?? null);
+      setCategories(s.article_categories?.length ? s.article_categories : ARTICLE_CATEGORIES);
+      setAutoShare(!!s.auto_share_on_publish);
     }).catch(() => setSettings({}));
   }, []);
 
   function toggleSection(key: keyof SectionsVisibility) {
     setVisibility((prev) => ({ ...prev, [key]: prev[key] === false ? true : false }));
+  }
+
+  function addCategory() {
+    const value = newCategory.trim();
+    if (!value || categories.includes(value)) return;
+    setCategories((prev) => [...prev, value]);
+    setNewCategory('');
+  }
+
+  function removeCategory(category: string) {
+    setCategories((prev) => prev.filter((c) => c !== category));
+  }
+
+  function handleCategoryKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addCategory();
+    }
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -57,6 +80,8 @@ export default function SiteSettingsManager({ showToast }: { showToast: Notify }
       contact_email: String(form.get('contact_email') || '').trim(),
       contact_address: String(form.get('contact_address') || '').trim(),
       sections_visibility: visibility,
+      article_categories: categories.length ? categories : ARTICLE_CATEGORIES,
+      auto_share_on_publish: autoShare,
     };
     const raw = payload as Record<string, unknown>;
     for (const { key } of SOCIAL_FIELDS) {
@@ -206,6 +231,57 @@ export default function SiteSettingsManager({ showToast }: { showToast: Notify }
             </div>
           ))}
         </div>
+      </SectionCard>
+
+      <SectionCard title="تصنيفات الأخبار والمقالات" description="التصنيفات المتاحة عند إضافة/تعديل مقال، وفي فلتر البوابة الإخبارية">
+        <div className="mb-4 flex flex-wrap gap-2">
+          {categories.map((category) => (
+            <span key={category} className="flex items-center gap-1.5 rounded-full bg-sand-2 py-1.5 pl-2 pr-3 text-xs font-bold text-ink/70">
+              {category}
+              <button
+                type="button"
+                onClick={() => removeCategory(category)}
+                className="flex h-4 w-4 items-center justify-center rounded-full text-ink/40 hover:bg-ink/10 hover:text-rose-500"
+                aria-label={`حذف تصنيف ${category}`}
+              >
+                <CloseIcon className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+          {categories.length === 0 && <p className="text-xs text-ink/45">مفيش تصنيفات مضبوطة — هيتم استخدام التصنيفات الافتراضية.</p>}
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            onKeyDown={handleCategoryKeyDown}
+            placeholder="اسم تصنيف جديد"
+            className={inputClass}
+          />
+          <button
+            type="button"
+            onClick={addCategory}
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-violet-700"
+          >
+            <PlusIcon className="h-3.5 w-3.5" /> إضافة
+          </button>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="النشر التلقائي على السوشيال ميديا" description="بمجرد ما مقال يبقى منشورًا فعليًا للعامة، نوافذ المشاركة الجاهزة على المنصات المضبوطة أعلاه بتتفتح تلقائيًا بدل ما تنتظر ضغط الزرار">
+        <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-ink/10 px-4 py-3">
+          <span>
+            <span className="block text-sm font-bold text-ink/80">تفعيل الفتح التلقائي لنوافذ المشاركة</span>
+            <span className="mt-0.5 block text-xs text-ink/45">
+              لسه هيحتاج ضغطة نشر/موافقة من سوبر أدمن — ده مش نشر آلي عبر API المنصات (محتاج مفاتيح رسمية مش متاحة حاليًا)، لكنه بيفتح نوافذ المشاركة الجاهزة تلقائيًا بدل الضغط يدويًا على كل زرار.
+            </span>
+          </span>
+          <span className="relative inline-flex h-6 w-11 shrink-0 items-center">
+            <input type="checkbox" checked={autoShare} onChange={() => setAutoShare((v) => !v)} className="peer sr-only" />
+            <span className="absolute inset-0 rounded-full bg-ink/15 transition peer-checked:bg-emerald-500" />
+            <span className="absolute right-1 h-4 w-4 rounded-full bg-white transition peer-checked:right-6" />
+          </span>
+        </label>
       </SectionCard>
 
       <SectionCard title="أقسام الصفحة الرئيسية" description="أخفِ أي قسم مؤقتًا من غير ما تحذف بياناته">

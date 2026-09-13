@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminGetPendingReviewItems, adminApprovePendingItem, adminRejectPendingItem, ApiException, type PendingReviewItem } from '@/lib/api';
+import { adminGetPendingReviewItems, adminApprovePendingItem, adminRejectPendingItem, getSiteSettings, ApiException, type PendingReviewItem } from '@/lib/api';
+import type { SiteSettings } from '@/lib/types';
 import { CheckIcon, CloseIcon, UsersIcon } from '@/components/icons';
 import { SectionCard, EmptyState, Badge, type Notify } from './shared';
+import SocialShareModal from './SocialShareModal';
+import { getArticleSharePlatforms, autoOpenSharePopups } from '@/lib/socialShare';
 
 /**
  * قسم "بانتظار المراجعة" — سوبر أدمن فقط. بيجمع كل المحتوى اللي محررين
@@ -13,12 +16,17 @@ import { SectionCard, EmptyState, Badge, type Notify } from './shared';
 export default function PendingReviewManager({ showToast }: { showToast: Notify }) {
   const [items, setItems] = useState<PendingReviewItem[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [shareItem, setShareItem] = useState<PendingReviewItem | null>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
   function refresh() {
     setItems(null);
     adminGetPendingReviewItems().then(setItems).catch(() => setItems([]));
   }
   useEffect(refresh, []);
+  useEffect(() => {
+    getSiteSettings().then(setSiteSettings).catch(() => setSiteSettings({}));
+  }, []);
 
   async function handleApprove(item: PendingReviewItem) {
     setBusyId(item.id);
@@ -26,6 +34,22 @@ export default function PendingReviewManager({ showToast }: { showToast: Notify 
       await adminApprovePendingItem(item.collection, item.id);
       showToast(`تم نشر «${item.title}»`);
       setItems((prev) => prev?.filter((i) => i.id !== item.id) ?? null);
+      // لحظة الموافقة هي اللحظة اللي محتوى المحرر بيبقى ظاهر فعليًا للعامة —
+      // نعرض خيار المشاركة على السوشيال ميديا هنا بدل صفحة المقال (المحرر
+      // نفسه ملوش صلاحية يشوفها لحد ما تتوافق عليه أصلًا)
+      if (item.collection === 'articles' && item.slug) {
+        setShareItem(item);
+        if (siteSettings?.auto_share_on_publish) {
+          const pageUrl = `${window.location.origin}/news/${item.slug}`;
+          autoOpenSharePopups(
+            getArticleSharePlatforms(
+              { title: item.title, excerpt: item.excerpt ?? '', slug: item.slug, category: item.category, governorate: item.governorate },
+              siteSettings,
+              pageUrl
+            )
+          );
+        }
+      }
     } catch (err) {
       showToast(err instanceof ApiException ? err.message : 'تعذّرت الموافقة');
     } finally {
@@ -91,6 +115,20 @@ export default function PendingReviewManager({ showToast }: { showToast: Notify 
             </div>
           ))}
         </div>
+      )}
+
+      {shareItem && shareItem.slug && (
+        <SocialShareModal
+          article={{
+            title: shareItem.title,
+            excerpt: shareItem.excerpt ?? '',
+            slug: shareItem.slug,
+            image_url: shareItem.image_url,
+            category: shareItem.category,
+            governorate: shareItem.governorate,
+          }}
+          onClose={() => setShareItem(null)}
+        />
       )}
     </SectionCard>
   );

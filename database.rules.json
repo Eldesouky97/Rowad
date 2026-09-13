@@ -254,6 +254,8 @@
       "social_whatsapp":  { ".validate": "!newData.exists() || newData.isString()" },
       "social_linkedin":  { ".validate": "!newData.exists() || newData.isString()" },
       "social_tiktok":    { ".validate": "!newData.exists() || newData.isString()" },
+      "article_categories": { ".validate": true },
+      "auto_share_on_publish": { ".validate": "!newData.exists() || newData.isBoolean()" },
       "sections_visibility": {
         "about":         { ".validate": "!newData.exists() || newData.isBoolean()" },
         "programs":      { ".validate": "!newData.exists() || newData.isBoolean()" },

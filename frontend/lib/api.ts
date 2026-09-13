@@ -1285,6 +1285,12 @@ export interface PendingReviewItem {
   collectionLabel: string;
   title: string;
   created_by_name?: string;
+  /** الحقول التالية موجودة فقط للمقالات (collection === 'articles') — تُستخدم لبناء منشور المشاركة الجاهز بعد الموافقة */
+  slug?: string;
+  excerpt?: string;
+  image_url?: string | null;
+  category?: string;
+  governorate?: string;
 }
 
 const PENDING_COLLECTIONS: { key: PendingCollection; label: string }[] = [
@@ -1303,9 +1309,18 @@ export const adminGetPendingReviewItems = async (): Promise<PendingReviewItem[]>
   const results: PendingReviewItem[] = [];
   for (const { key, label } of PENDING_COLLECTIONS) {
     const snap = await get(ref(db, key));
-    const items = objectToArray(snap.val() ?? {}) as Array<
-      { id: string; title?: string; name?: string; pending_review?: boolean; created_by_name?: string }
-    >;
+    const items = objectToArray(snap.val() ?? {}) as Array<{
+      id: string;
+      title?: string;
+      name?: string;
+      pending_review?: boolean;
+      created_by_name?: string;
+      slug?: string;
+      excerpt?: string;
+      image_url?: string | null;
+      category?: string;
+      governorate?: string;
+    }>;
     for (const item of items) {
       if (item.pending_review) {
         results.push({
@@ -1314,6 +1329,9 @@ export const adminGetPendingReviewItems = async (): Promise<PendingReviewItem[]>
           collectionLabel: label,
           title: item.title || item.name || '—',
           created_by_name: item.created_by_name,
+          ...(key === 'articles'
+            ? { slug: item.slug, excerpt: item.excerpt, image_url: item.image_url, category: item.category, governorate: item.governorate }
+            : {}),
         });
       }
     }

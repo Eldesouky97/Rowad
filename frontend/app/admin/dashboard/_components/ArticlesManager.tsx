@@ -1,10 +1,12 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
-import { adminGetArticles, adminCreateArticle, adminUpdateArticle, adminDeleteArticle, ApiException } from '@/lib/api';
-import type { Article } from '@/lib/types';
+import { adminGetArticles, adminCreateArticle, adminUpdateArticle, adminDeleteArticle, getSiteSettings, ApiException } from '@/lib/api';
+import type { Article, SiteSettings } from '@/lib/types';
 import { PlusIcon, EditIcon, TrashIcon, BookIcon } from '@/components/icons';
 import RichTextEditor from '@/components/RichTextEditor';
+import SocialShareModal from './SocialShareModal';
+import { getArticleSharePlatforms, autoOpenSharePopups } from '@/lib/socialShare';
 import {
   ARTICLE_CATEGORIES, GOVS, inputClass, labelClass,
   SectionCard, Badge, EmptyState, ErrorText, PublisherNote, PendingBadge, EditorReviewNotice, publishToast, type Notify,
@@ -32,11 +34,29 @@ export default function ArticlesManager({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [content, setContent] = useState('');
+  const [shareArticle, setShareArticle] = useState<Article | null>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
   function refresh() {
     adminGetArticles().then(setItems).catch(() => setItems([]));
   }
   useEffect(refresh, []);
+  useEffect(() => {
+    getSiteSettings().then(setSiteSettings).catch(() => setSiteSettings({}));
+  }, []);
+
+  const categories = siteSettings?.article_categories?.length ? siteSettings.article_categories : ARTICLE_CATEGORIES;
+
+  // لحظة ما مقال يبقى منشورًا فعليًا (سوبر أدمن بينشئ/يعدّل)، نعرض نافذة
+  // المشاركة دايمًا، وكمان نفتح نوافذ المنصات تلقائيًا لو "النشر التلقائي"
+  // مفعّل في إعدادات الموقع — راجع lib/socialShare.ts لتفاصيل قيود المتصفح.
+  function handlePublishedForSharing(article: Article) {
+    setShareArticle(article);
+    if (siteSettings?.auto_share_on_publish) {
+      const pageUrl = `${window.location.origin}/news/${article.slug}`;
+      autoOpenSharePopups(getArticleSharePlatforms(article, siteSettings, pageUrl));
+    }
+  }
 
   function openCreate() { setEditing(null); setContent(''); setShowForm(true); }
   function openEdit(a: Article) { setEditing(a); setContent(a.content); setShowForm(true); }
@@ -66,9 +86,21 @@ export default function ArticlesManager({
       if (editing) {
         await adminUpdateArticle(editing.id, formData);
         showToast(publishToast(isSuperAdmin, 'تحديث', 'المقال'));
+        // المقال بقى منشورًا فعليًا بس لو المنفّذ سوبر أدمن (محرر بيروح بانتظار
+        // المراجعة دايمًا) — هنا هو اللحظة اللي المشاركة على السوشيال ميديا تبقى منطقية
+        if (isSuperAdmin) {
+          handlePublishedForSharing({
+            ...editing,
+            title: String(formData.get('title') || editing.title),
+            excerpt: String(formData.get('excerpt') || editing.excerpt),
+            category: String(formData.get('category') || editing.category),
+            governorate: String(formData.get('governorate') || editing.governorate),
+          });
+        }
       } else {
-        await adminCreateArticle(formData);
+        const created = await adminCreateArticle(formData);
         showToast(publishToast(isSuperAdmin, 'إضافة', 'المقال'));
+        if (isSuperAdmin) handlePublishedForSharing(created);
       }
       closeForm();
       refresh();
@@ -113,8 +145,8 @@ export default function ArticlesManager({
           </div>
           <div>
             <label className={labelClass}>التصنيف</label>
-            <select name="category" defaultValue={editing?.category ?? ARTICLE_CATEGORIES[0]} className={inputClass}>
-              {ARTICLE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+            <select name="category" defaultValue={editing?.category ?? categories[0]} className={inputClass}>
+              {categories.map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div>
@@ -214,6 +246,8 @@ export default function ArticlesManager({
           ))}
         </div>
       )}
+
+      {shareArticle && <SocialShareModal article={shareArticle} onClose={() => setShareArticle(null)} />}
     </SectionCard>
   );
 }
