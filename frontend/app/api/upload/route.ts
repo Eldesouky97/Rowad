@@ -1,7 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
+import sharp from 'sharp';
 import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
+
+// أقصى أبعاد (بكسل) لكل نوع صورة — بتتغيّر تلقائيًا لأي صورة أكبر من كده مع
+// الحفاظ على نسبة العرض للارتفاع (من غير تمديد الصور الصغيرة أصلًا). الهدف
+// تقليل حجم الملفات المرفوعة وتوحيد أبعادها المعروضة فعليًا في الموقع، بدل
+// ما ترفع صورة أصلية بدقة كاميرا كاملة (ممكن توصل لعشرات الميجابايت قبل حتى
+// حد الـ4 ميجا) وتتخزن وتتحمّل زي ما هي.
+const MAX_DIMENSIONS: Record<string, { width: number; height: number }> = {
+  avatars: { width: 512, height: 512 },
+  branding: { width: 800, height: 800 },
+  gallery: { width: 1600, height: 1600 },
+};
+
+/** بيصغّر الصورة (لو أكبر من المقاس المناسب) ويصحّح دورانها حسب بيانات EXIF —
+ * بيرجّع الصورة زي ما هي (Buffer الأصلي) لو فشل التصغير لأي سبب (صيغة غير
+ * مدعومة مثلًا)، عشان فشل خطوة "تحسين" اختيارية ميوقفش الرفع بالكامل. */
+async function resizeImage(bytes: Buffer, folder: string): Promise<Buffer> {
+  const dims = MAX_DIMENSIONS[folder] ?? MAX_DIMENSIONS.gallery;
+  try {
+    return await sharp(bytes)
+      .rotate()
+      .resize({ width: dims.width, height: dims.height, fit: 'inside', withoutEnlargement: true })
+      .toBuffer();
+  } catch (err) {
+    console.error('resizeImage failed, uploading original file instead', err);
+    return bytes;
+  }
+}
 
 // يرفع صورة إلى Cloudflare R2 من جانب السيرفر فقط — مفاتيح R2 السرّية
 // (R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY) لا تُستخدم إلا هنا ولا تصل
@@ -80,7 +108,8 @@ export async function POST(req: NextRequest) {
 
   const ext = file.name.split('.').pop() || 'jpg';
   const key = `${folder}/${randomUUID()}.${ext}`;
-  const bytes = Buffer.from(await file.arrayBuffer());
+  const originalBytes = Buffer.from(await file.arrayBuffer());
+  const bytes = await resizeImage(originalBytes, folder);
 
   try {
     await s3.send(
