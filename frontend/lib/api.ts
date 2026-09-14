@@ -47,6 +47,7 @@ import type {
   GalleryImage,
   GalleryAlbum,
   SiteSettings,
+  OrgPosition,
 } from './types';
 
 // القراءات العامة (REST خالصة، بدون Firebase SDK) منقولة إلى publicApi.ts
@@ -65,6 +66,7 @@ export {
   getGallery,
   getGalleryAlbums,
   getSiteSettings,
+  getOrgPositions,
   ApiException,
 } from './publicApi';
 
@@ -1247,6 +1249,54 @@ export const adminPromoteSiteUser = async (uid: string, payload: { name: string;
   }
   try {
     await set(ref(db, `admins/${uid}`), payload);
+  } catch (err) {
+    throw translateFirebaseError(err);
+  }
+};
+
+export interface UserPositionPayload {
+  /** null = إلغاء المنصب بالكامل */
+  position_role: string | null;
+  position_governorate?: string | null;
+  position_committee?: string | null;
+  membership_number?: string | null;
+}
+
+// تعيين/إلغاء منصب الهيكل الإداري + رقم العضوية — سوبر أدمن فقط (مفروض أيضًا
+// في database.rules.json). بيكتب في مكانين: site_users (كل التفاصيل، خاص)
+// وorg_positions (نسخة عامة القراءة مصغّرة بدون بيانات حساسة، أو حذفها لو
+// المنصب اتلغى) — عشان صفحة "الهيكل الإداري" العامة تقدر تعرضها من غير ما
+// نفتح site_users نفسها للقراءة العامة. الـemail لازم يتبعت حتى لو مش متغيّر
+// عشان newData.hasChildren(['email']) يفضل متحقق في حالة الحساب لسه ملوش
+// سجل site_users خالص (أدمن اتعمل من غير ما يسجّل دخول كزائر قبل كده).
+export const adminSetUserPosition = async (
+  uid: string,
+  user: { name: string; email: string; photo_url?: string | null },
+  payload: UserPositionPayload
+): Promise<void> => {
+  const { created_by_name } = await getPublisherInfo();
+  const siteUserUpdates: Record<string, unknown> = {
+    email: user.email,
+    position_role: payload.position_role,
+    position_governorate: payload.position_role ? payload.position_governorate ?? null : null,
+    position_committee: payload.position_role ? payload.position_committee ?? null : null,
+    membership_number: payload.membership_number ?? null,
+    position_assigned_by: created_by_name,
+    position_assigned_at: new Date().toISOString(),
+  };
+  try {
+    await update(ref(db, `site_users/${uid}`), siteUserUpdates);
+    if (payload.position_role) {
+      await set(ref(db, `org_positions/${uid}`), {
+        name: user.name,
+        photo_url: user.photo_url ?? null,
+        position_role: payload.position_role,
+        position_governorate: payload.position_governorate ?? null,
+        position_committee: payload.position_committee ?? null,
+      });
+    } else {
+      await remove(ref(db, `org_positions/${uid}`));
+    }
   } catch (err) {
     throw translateFirebaseError(err);
   }

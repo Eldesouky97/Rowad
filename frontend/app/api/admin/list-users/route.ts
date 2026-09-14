@@ -47,7 +47,10 @@ export async function GET(req: NextRequest) {
     const admins = (adminsSnap.val() || {}) as Record<string, { name?: string; email?: string; role?: FirebaseAccountRow['role'] }>;
     const siteUsers = (siteUsersSnap.val() || {}) as Record<
       string,
-      { name?: string; email?: string; profile_completed?: boolean; provider?: string; last_login_at?: string; created_at?: string }
+      {
+        name?: string; email?: string; profile_completed?: boolean; provider?: string; last_login_at?: string; created_at?: string;
+        photo_url?: string; position_role?: string; position_governorate?: string; position_committee?: string; membership_number?: string;
+      }
     >;
 
     const rows: FirebaseAccountRow[] = [];
@@ -69,6 +72,11 @@ export async function GET(req: NextRequest) {
           created_at: siteUserRecord?.created_at || u.metadata.creationTime || null,
           last_login_at: siteUserRecord?.last_login_at || u.metadata.lastSignInTime || null,
           is_protected: (adminRecord?.email || u.email) === PROTECTED_SUPER_ADMIN_EMAIL,
+          photo_url: siteUserRecord?.photo_url || u.photoURL || null,
+          position_role: siteUserRecord?.position_role || null,
+          position_governorate: siteUserRecord?.position_governorate || null,
+          position_committee: siteUserRecord?.position_committee || null,
+          membership_number: siteUserRecord?.membership_number || null,
         });
       }
       pageToken = page.pageToken;

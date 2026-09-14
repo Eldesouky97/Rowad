@@ -80,6 +80,7 @@ export default function Footer() {
             <li><Link href="/#programs" className="hover:text-gold-2">برامجنا</Link></li>
             <li><Link href="/activities" className="hover:text-gold-2">الفعاليات</Link></li>
             <li><Link href="/news" className="hover:text-gold-2">المقالات</Link></li>
+            <li><Link href="/structure" className="hover:text-gold-2">الهيكل الإداري</Link></li>
             <li><Link href="/#gallery" className="hover:text-gold-2">معرض الصور</Link></li>
           </ul>
         </div>

@@ -4,7 +4,7 @@
 // وقت تحميل الموديول، وهذا يفشل في بيئة الخادم. القراءات هنا REST خالصة
 // (fetch عادي عبر firebaseHelpers، وهي بدورها لا تستورد Firebase SDK إطلاقًا).
 import { objectToArray, restGet, restPost, computeEventFields, ApiException } from './firebaseHelpers';
-import type { Article, EventItem, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum, ContactMessagePayload, SiteSettings } from './types';
+import type { Article, EventItem, Program, Governorate, SuccessStory, GalleryImage, GalleryAlbum, ContactMessagePayload, SiteSettings, OrgPosition } from './types';
 
 export { ApiException };
 
@@ -131,4 +131,11 @@ export const getGalleryAlbums = async (): Promise<GalleryAlbum[]> => {
 export const getSiteSettings = async (): Promise<SiteSettings> => {
   const raw = await restGet<SiteSettings>('site_settings');
   return raw || {};
+};
+
+/** الهيكل الإداري العام (قيادة الكيان، منسقو المحافظات، رؤساء/نواب/أعضاء اللجان)
+ * — نسخة عامة القراءة آمنة (بدون بيانات حساسة) من site_users، راجع lib/types.ts */
+export const getOrgPositions = async (): Promise<OrgPosition[]> => {
+  const raw = await restGet<Record<string, OrgPosition>>('org_positions');
+  return objectToArray(raw);
 };

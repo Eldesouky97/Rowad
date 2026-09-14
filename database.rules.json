@@ -210,7 +210,7 @@
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).exists())",
         ".write": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).child('role').val() === 'super_admin')",
-        ".validate": "newData.hasChildren(['email'])",
+        ".validate": "newData.hasChildren(['email']) && (root.child('admins').child(auth.uid).child('role').val() === 'super_admin' || (data.child('position_role').val() === newData.child('position_role').val() && data.child('position_governorate').val() === newData.child('position_governorate').val() && data.child('position_committee').val() === newData.child('position_committee').val() && data.child('membership_number').val() === newData.child('membership_number').val() && data.child('position_assigned_by').val() === newData.child('position_assigned_by').val() && data.child('position_assigned_at').val() === newData.child('position_assigned_at').val()))",
         "name":              { ".validate": "!newData.exists() || newData.isString()" },
         "email":             { ".validate": "newData.isString() && newData.val().length > 0" },
         "phone":             { ".validate": "!newData.exists() || newData.isString()" },
@@ -224,7 +224,27 @@
         "profile_completed": { ".validate": "!newData.exists() || newData.isBoolean()" },
         "provider":          { ".validate": "!newData.exists() || newData.isString()" },
         "created_at":        { ".validate": true },
-        "last_login_at":     { ".validate": true }
+        "last_login_at":     { ".validate": true },
+        "position_role":          { ".validate": "!newData.exists() || newData.isString()" },
+        "position_governorate":   { ".validate": "!newData.exists() || newData.isString()" },
+        "position_committee":     { ".validate": "!newData.exists() || newData.isString()" },
+        "membership_number":      { ".validate": "!newData.exists() || newData.isString()" },
+        "position_assigned_by":   { ".validate": "!newData.exists() || newData.isString()" },
+        "position_assigned_at":   { ".validate": true }
+      }
+    },
+
+    "org_positions": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && root.child('admins').child(auth.uid).child('role').val() === 'super_admin'",
+        ".validate": "newData.hasChildren(['name','position_role'])",
+        "name":                 { ".validate": "newData.isString() && newData.val().length > 0" },
+        "photo_url":            { ".validate": "!newData.exists() || newData.isString()" },
+        "position_role":        { ".validate": "newData.isString() && newData.val().length > 0" },
+        "position_governorate": { ".validate": "!newData.exists() || newData.isString()" },
+        "position_committee":   { ".validate": "!newData.exists() || newData.isString()" },
+        "$other":               { ".validate": false }
       }
     },
 

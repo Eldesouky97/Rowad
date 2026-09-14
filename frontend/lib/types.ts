@@ -179,6 +179,11 @@ export interface FirebaseAccountRow {
   created_at: string | null;
   last_login_at: string | null;
   is_protected: boolean;
+  photo_url?: string | null;
+  position_role?: string | null;
+  position_governorate?: string | null;
+  position_committee?: string | null;
+  membership_number?: string | null;
 }
 
 export interface AdminUserPayload {
@@ -199,13 +204,36 @@ export interface SiteUser {
   address?: string;
   age?: number;
   education?: string;
-  /** اللجنة داخل الكيان — نفس تصنيفات البرامج */
+  /** اللجنة داخل الكيان — نفس تصنيفات البرامج (اهتمام/عضوية ذاتية، يكتبها الزائر بنفسه) */
   committee?: string;
   /** true بعد ما يملأ الزائر نموذج إكمال البيانات الإجباري أول مرة */
   profile_completed?: boolean;
   provider?: string;
   created_at?: string;
   last_login_at?: string;
+  /** منصب الهيكل الإداري الرسمي (راجع lib/constants.ts) — يُعيّنه سوبر أدمن فقط، مختلف عن "committee" الذاتي فوق */
+  position_role?: string | null;
+  /** المحافظة اللي المنصب ده تابع لها (لو المنصب من نوع منسق محافظة/لجنة) — مستقلة عن محافظة إقامة الشخص */
+  position_governorate?: string | null;
+  /** اللجنة (لو المنصب من نوع رئيس/نائب/عضو لجنة) */
+  position_committee?: string | null;
+  /** رقم العضوية الرسمي — سوبر أدمن فقط، لا يظهر للعامة إطلاقًا */
+  membership_number?: string | null;
+  position_assigned_by?: string | null;
+  position_assigned_at?: string | null;
+}
+
+/** سجل عام (قراءة عامة) لأي حساب له منصب في الهيكل الإداري — نسخة مصغّرة
+ * وآمنة من site_users (بدون بيانات حساسة زي رقم العضوية/الإيميل/الرقم
+ * القومي) بتتحدّث تلقائيًا كل ما سوبر أدمن يعيّن/يلغي منصب حد، عشان صفحة
+ * "الهيكل الإداري" العامة تقدر تعرضها من غير ما نفتح site_users نفسها للقراءة العامة. */
+export interface OrgPosition {
+  id: string;
+  name: string;
+  photo_url?: string | null;
+  position_role: string;
+  position_governorate?: string | null;
+  position_committee?: string | null;
 }
 
 export interface VisitorProfilePayload {

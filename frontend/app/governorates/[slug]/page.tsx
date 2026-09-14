@@ -8,9 +8,11 @@ import ArticleCard from '@/components/ArticleCard';
 import SuccessStoryCard from '@/components/SuccessStoryCard';
 import BookingModal from '@/components/BookingModal';
 import Reveal from '@/components/Reveal';
-import { getGovernorate, getEvents, getArticles, getSuccessStories } from '@/lib/api';
+import { getGovernorate, getEvents, getArticles, getSuccessStories, getOrgPositions } from '@/lib/api';
 import { getMyBookedEventIds } from '@/lib/bookings';
-import type { Governorate, EventItem, Article, SuccessStory } from '@/lib/types';
+import type { Governorate, EventItem, Article, SuccessStory, OrgPosition } from '@/lib/types';
+import { COMMITTEES } from '@/lib/constants';
+import UserAvatar from '@/components/UserAvatar';
 import { PinIcon, ArrowIcon, CalendarIcon, BookIcon, UsersIcon } from '@/components/icons';
 
 export default function GovernoratePage() {
@@ -22,6 +24,7 @@ export default function GovernoratePage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [stories, setStories] = useState<SuccessStory[]>([]);
+  const [orgPositions, setOrgPositions] = useState<OrgPosition[]>([]);
   const [bookedIds, setBookedIds] = useState<string[]>([]);
   const [bookingEvent, setBookingEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,11 +40,12 @@ export default function GovernoratePage() {
     getGovernorate(slug)
       .then((g) => {
         setGovernorate(g);
-        return Promise.all([getEvents('all'), getArticles(), getSuccessStories()]).then(
-          ([allEvents, allArticles, allStories]) => {
+        return Promise.all([getEvents('all'), getArticles(), getSuccessStories(), getOrgPositions()]).then(
+          ([allEvents, allArticles, allStories, allPositions]) => {
             setEvents(allEvents.filter((e) => e.governorate === g.name));
             setArticles(allArticles.filter((a) => a.governorate === g.name));
             setStories(allStories.filter((s) => s.governorate === g.name));
+            setOrgPositions(allPositions.filter((p) => p.position_governorate === g.name));
           }
         );
       })
@@ -74,6 +78,15 @@ export default function GovernoratePage() {
 
   const g = governorate;
   const hasRelated = events.length > 0 || articles.length > 0 || stories.length > 0;
+
+  const coordinator = orgPositions.find((p) => p.position_role === 'governorate_coordinator');
+  const committees = COMMITTEES.map((committee) => ({
+    name: committee,
+    head: orgPositions.find((p) => p.position_committee === committee && p.position_role === 'committee_head'),
+    deputy: orgPositions.find((p) => p.position_committee === committee && p.position_role === 'committee_deputy'),
+    members: orgPositions.filter((p) => p.position_committee === committee && p.position_role === 'committee_member'),
+  })).filter((c) => c.head || c.deputy || c.members.length > 0);
+  const hasTeam = !!coordinator || committees.length > 0;
 
   return (
     <>
@@ -115,6 +128,68 @@ export default function GovernoratePage() {
           </div>
         </div>
       </section>
+
+      {/* ============ TEAM ============ */}
+      {hasTeam && (
+        <section className="bg-white py-16">
+          <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
+            <Reveal className="mb-8 flex items-center gap-2">
+              <UsersIcon className="h-5 w-5 text-rust" />
+              <h2 className="font-display text-2xl">فريق محافظة {g.name}</h2>
+            </Reveal>
+            {coordinator && (
+              <div className="mb-6 flex items-center gap-3 rounded-2xl border border-gold/25 bg-sand/40 p-4 sm:max-w-[420px]">
+                <UserAvatar src={coordinator.photo_url} name={coordinator.name} size="lg" />
+                <div>
+                  <p className="font-bold">{coordinator.name}</p>
+                  <p className="text-xs text-rust">منسق عام محافظة {g.name}</p>
+                </div>
+              </div>
+            )}
+            {committees.length > 0 && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {committees.map((c) => (
+                  <div key={c.name} className="rounded-2xl border border-gold/25 bg-cream/60 p-4">
+                    <p className="mb-3 font-utility text-xs font-bold text-ink/60">لجنة {c.name}</p>
+                    <div className="grid gap-2">
+                      {c.head && (
+                        <div className="flex items-center gap-2.5">
+                          <UserAvatar src={c.head.photo_url} name={c.head.name} size="sm" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold">{c.head.name}</p>
+                            <p className="text-[11px] text-rust">رئيس اللجنة</p>
+                          </div>
+                        </div>
+                      )}
+                      {c.deputy && (
+                        <div className="flex items-center gap-2.5">
+                          <UserAvatar src={c.deputy.photo_url} name={c.deputy.name} size="sm" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold">{c.deputy.name}</p>
+                            <p className="text-[11px] text-rust">نائب اللجنة</p>
+                          </div>
+                        </div>
+                      )}
+                      {c.members.map((m) => (
+                        <div key={m.id} className="flex items-center gap-2.5">
+                          <UserAvatar src={m.photo_url} name={m.name} size="sm" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold">{m.name}</p>
+                            <p className="text-[11px] text-rust">عضو اللجنة</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Link href="/structure" className="mt-6 inline-flex items-center gap-1.5 text-xs font-bold text-violet-700 hover:underline">
+              عرض الهيكل الإداري كاملًا
+            </Link>
+          </div>
+        </section>
+      )}
 
       {!hasRelated ? (
         <section className="bg-cream py-20">

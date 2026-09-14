@@ -7,11 +7,14 @@ import {
   adminUpdateUser,
   adminPromoteSiteUser,
   adminDeleteUserCompletely,
+  adminSetUserPosition,
   sendAdminPasswordReset,
   ApiException,
+  type UserPositionPayload,
 } from '@/lib/api';
 import type { AdminRole, FirebaseAccountRow } from '@/lib/types';
-import { PlusIcon, EditIcon, KeyIcon, TrashIcon, ShieldIcon, StarIcon, EyeIcon } from '@/components/icons';
+import { GOVERNORATES, COMMITTEES, POSITION_ROLES, POSITION_ROLE_LABELS, POSITION_ROLE_SCOPE, type PositionRoleValue } from '@/lib/constants';
+import { PlusIcon, EditIcon, KeyIcon, TrashIcon, ShieldIcon, StarIcon, EyeIcon, LayersIcon } from '@/components/icons';
 import { ROLES, ROLE_LABELS, ROLE_TONE, inputClass, labelClass, SectionCard, Badge, EmptyState, ErrorText, StatCard, SearchBox, type Notify } from './shared';
 
 const providerLabel: Record<string, string> = { google: 'Google', password: 'بريد إلكتروني' };
@@ -30,6 +33,8 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
   const [search, setSearch] = useState('');
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [roleSubmitting, setRoleSubmitting] = useState(false);
+  const [editingPositionId, setEditingPositionId] = useState<string | null>(null);
+  const [positionSubmitting, setPositionSubmitting] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -75,6 +80,20 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
       showToast(err instanceof ApiException ? err.message : 'تعذّر تحديث الدور');
     } finally {
       setRoleSubmitting(false);
+    }
+  }
+
+  async function handlePositionChange(u: FirebaseAccountRow, payload: UserPositionPayload) {
+    setPositionSubmitting(true);
+    try {
+      await adminSetUserPosition(u.id, { name: u.name, email: u.email, photo_url: u.photo_url }, payload);
+      showToast(payload.position_role ? `تم تعيين منصب ${u.name}` : `تم إلغاء منصب ${u.name}`);
+      setEditingPositionId(null);
+      refresh();
+    } catch (err) {
+      showToast(err instanceof ApiException ? err.message : 'تعذّر تحديث المنصب');
+    } finally {
+      setPositionSubmitting(false);
     }
   }
 
@@ -205,10 +224,14 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
                   key={u.id}
                   user={u}
                   locked={u.id === currentUserId || u.is_protected}
-                  editing={editingRoleId === u.id}
-                  submitting={roleSubmitting}
-                  onToggleEdit={() => setEditingRoleId(editingRoleId === u.id ? null : u.id)}
+                  editingRole={editingRoleId === u.id}
+                  roleSubmitting={roleSubmitting}
+                  onToggleRoleEdit={() => setEditingRoleId(editingRoleId === u.id ? null : u.id)}
                   onConfirmRole={(role) => handleRoleChange(u, role)}
+                  editingPosition={editingPositionId === u.id}
+                  positionSubmitting={positionSubmitting}
+                  onTogglePositionEdit={() => setEditingPositionId(editingPositionId === u.id ? null : u.id)}
+                  onConfirmPosition={(payload) => handlePositionChange(u, payload)}
                   onResetPassword={() => handleResetPassword(u.email)}
                   onRemove={() => handleRemove(u)}
                 />
@@ -224,6 +247,7 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
                     <th className="py-2.5 pl-4">البريد</th>
                     <th className="py-2.5 pl-4">طريقة الدخول</th>
                     <th className="py-2.5 pl-4">الدور</th>
+                    <th className="py-2.5 pl-4">المنصب</th>
                     <th className="py-2.5 pl-4">حالة البيانات</th>
                     <th className="py-2.5 pl-4">آخر دخول</th>
                     <th className="py-2.5"></th>
@@ -250,6 +274,13 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
                             </div>
                           </td>
                           <td className="py-3 pl-4">
+                            {u.position_role ? (
+                              <Badge tone="violet">{POSITION_ROLE_LABELS[u.position_role as PositionRoleValue] ?? u.position_role}</Badge>
+                            ) : (
+                              <span className="text-ink/35">—</span>
+                            )}
+                          </td>
+                          <td className="py-3 pl-4">
                             <Badge tone={u.profile_completed ? 'success' : 'warning'}>{u.profile_completed ? 'مكتمل' : 'غير مكتمل'}</Badge>
                           </td>
                           <td className="py-3 pl-4 text-ink/60">
@@ -264,6 +295,13 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
                                 aria-label="تعديل الدور"
                               >
                                 <EditIcon className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => setEditingPositionId(editingPositionId === u.id ? null : u.id)}
+                                className="rounded-lg p-2 text-ink/50 hover:bg-sand hover:text-ink"
+                                aria-label="تعديل المنصب"
+                              >
+                                <LayersIcon className="h-4 w-4" />
                               </button>
                               {u.provider !== 'google' && (
                                 <button onClick={() => handleResetPassword(u.email)} className="rounded-lg p-2 text-ink/50 hover:bg-sand hover:text-ink" aria-label="إعادة تعيين كلمة المرور">
@@ -283,12 +321,24 @@ export default function UsersManager({ currentUserId, showToast }: { currentUser
                         </tr>
                         {editingRoleId === u.id && (
                           <tr className="border-b border-ink/5 bg-sand/40 last:border-0">
-                            <td colSpan={7} className="p-4">
+                            <td colSpan={8} className="p-4">
                               <RoleInlineForm
                                 user={u}
                                 submitting={roleSubmitting}
                                 onCancel={() => setEditingRoleId(null)}
                                 onConfirm={(role) => handleRoleChange(u, role)}
+                              />
+                            </td>
+                          </tr>
+                        )}
+                        {editingPositionId === u.id && (
+                          <tr className="border-b border-ink/5 bg-sand/40 last:border-0">
+                            <td colSpan={8} className="p-4">
+                              <PositionInlineForm
+                                user={u}
+                                submitting={positionSubmitting}
+                                onCancel={() => setEditingPositionId(null)}
+                                onConfirm={(payload) => handlePositionChange(u, payload)}
                               />
                             </td>
                           </tr>
@@ -337,22 +387,104 @@ function RoleInlineForm({
   );
 }
 
+/** فورم تعيين/إلغاء منصب الهيكل الإداري — الحقول المطلوبة (محافظة/لجنة) بتتغيّر
+ * حسب نطاق المنصب المختار (راجع POSITION_ROLE_SCOPE في lib/constants.ts) */
+function PositionInlineForm({
+  user,
+  submitting,
+  onCancel,
+  onConfirm,
+}: {
+  user: FirebaseAccountRow;
+  submitting: boolean;
+  onCancel: () => void;
+  onConfirm: (payload: UserPositionPayload) => void;
+}) {
+  const [role, setRole] = useState<string>(user.position_role ?? '');
+  const [governorate, setGovernorate] = useState<string>(user.position_governorate ?? GOVERNORATES[0]);
+  const [committee, setCommittee] = useState<string>(user.position_committee ?? COMMITTEES[0]);
+  const [membershipNumber, setMembershipNumber] = useState<string>(user.membership_number ?? '');
+
+  const scope = role ? POSITION_ROLE_SCOPE[role as PositionRoleValue] : 'none';
+  const needsGovernorate = scope === 'governorate' || scope === 'governorate_committee';
+  const needsCommittee = scope === 'governorate_committee';
+
+  function handleSave() {
+    onConfirm({
+      position_role: role || null,
+      position_governorate: needsGovernorate ? governorate : null,
+      position_committee: needsCommittee ? committee : null,
+      membership_number: membershipNumber.trim() || null,
+    });
+  }
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-4">
+      <div>
+        <label className={labelClass}>المنصب</label>
+        <select value={role} onChange={(e) => setRole(e.target.value)} className={inputClass}>
+          <option value="">بدون منصب</option>
+          {POSITION_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
+      </div>
+      {needsGovernorate && (
+        <div>
+          <label className={labelClass}>المحافظة</label>
+          <select value={governorate} onChange={(e) => setGovernorate(e.target.value)} className={inputClass}>
+            {GOVERNORATES.map((g) => <option key={g}>{g}</option>)}
+          </select>
+        </div>
+      )}
+      {needsCommittee && (
+        <div>
+          <label className={labelClass}>اللجنة</label>
+          <select value={committee} onChange={(e) => setCommittee(e.target.value)} className={inputClass}>
+            {COMMITTEES.map((c) => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+      )}
+      <div>
+        <label className={labelClass}>رقم العضوية</label>
+        <input value={membershipNumber} onChange={(e) => setMembershipNumber(e.target.value)} placeholder="غير ظاهر للعامة" className={inputClass} />
+      </div>
+      <div className="flex items-end gap-3 sm:col-span-4">
+        <button
+          onClick={handleSave}
+          disabled={submitting}
+          className="rounded-full bg-violet-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
+        >
+          {submitting ? 'جارٍ الحفظ…' : 'حفظ المنصب'}
+        </button>
+        <button onClick={onCancel} className="rounded-full border border-ink/15 px-4 py-2 text-xs font-bold hover:bg-white">إلغاء</button>
+      </div>
+    </div>
+  );
+}
+
 function UserCard({
   user,
   locked,
-  editing,
-  submitting,
-  onToggleEdit,
+  editingRole,
+  roleSubmitting,
+  onToggleRoleEdit,
   onConfirmRole,
+  editingPosition,
+  positionSubmitting,
+  onTogglePositionEdit,
+  onConfirmPosition,
   onResetPassword,
   onRemove,
 }: {
   user: FirebaseAccountRow;
   locked: boolean;
-  editing: boolean;
-  submitting: boolean;
-  onToggleEdit: () => void;
+  editingRole: boolean;
+  roleSubmitting: boolean;
+  onToggleRoleEdit: () => void;
   onConfirmRole: (role: AdminRole) => void;
+  editingPosition: boolean;
+  positionSubmitting: boolean;
+  onTogglePositionEdit: () => void;
+  onConfirmPosition: (payload: UserPositionPayload) => void;
   onResetPassword: () => void;
   onRemove: () => void;
 }) {
@@ -372,22 +504,37 @@ function UserCard({
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink/50">
         <Badge tone="neutral">{providerLabel[user.provider || ''] || user.provider || '—'}</Badge>
         <Badge tone={user.profile_completed ? 'success' : 'warning'}>{user.profile_completed ? 'مكتمل' : 'غير مكتمل'}</Badge>
+        {user.position_role && (
+          <Badge tone="violet">{POSITION_ROLE_LABELS[user.position_role as PositionRoleValue] ?? user.position_role}</Badge>
+        )}
         <span>{user.last_login_at ? new Date(user.last_login_at).toLocaleString('ar-EG') : 'لم يسجّل دخول بعد'}</span>
       </div>
 
-      {editing && (
+      {editingRole && (
         <div className="mt-3 rounded-lg bg-sand/60 p-3">
-          <RoleInlineForm user={user} submitting={submitting} onCancel={onToggleEdit} onConfirm={onConfirmRole} />
+          <RoleInlineForm user={user} submitting={roleSubmitting} onCancel={onToggleRoleEdit} onConfirm={onConfirmRole} />
+        </div>
+      )}
+
+      {editingPosition && (
+        <div className="mt-3 rounded-lg bg-sand/60 p-3">
+          <PositionInlineForm user={user} submitting={positionSubmitting} onCancel={onTogglePositionEdit} onConfirm={onConfirmPosition} />
         </div>
       )}
 
       <div className="mt-3 flex flex-wrap gap-2 border-t border-ink/10 pt-3">
         <button
-          onClick={onToggleEdit}
+          onClick={onToggleRoleEdit}
           disabled={locked}
           className="flex items-center gap-1.5 rounded-full border border-ink/10 px-3 py-1.5 text-xs font-bold text-ink/70 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <EditIcon className="h-3.5 w-3.5" /> الدور
+        </button>
+        <button
+          onClick={onTogglePositionEdit}
+          className="flex items-center gap-1.5 rounded-full border border-ink/10 px-3 py-1.5 text-xs font-bold text-ink/70"
+        >
+          <LayersIcon className="h-3.5 w-3.5" /> المنصب
         </button>
         {user.provider !== 'google' && (
           <button onClick={onResetPassword} className="flex items-center gap-1.5 rounded-full border border-ink/10 px-3 py-1.5 text-xs font-bold text-ink/70">
